@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/app/lib/supabase";
 
 type Transaction = {
   id: string;
@@ -19,6 +21,8 @@ const DEFAULT_CATEGORY_OPTIONS: Record<string, string[]> = {
 };
 
 export default function Home() {
+  const router = useRouter();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isAddSubModalOpen, setIsAddSubModalOpen] = useState(false);
   const [newSubName, setNewSubName] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -30,66 +34,90 @@ export default function Home() {
   const [isCustomSubCategory, setIsCustomSubCategory] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importStatus, setImportStatus] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
 
-  const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>(DEFAULT_CATEGORY_OPTIONS);
-
-  // Load data dari localStorage dengan pengecekan beberapa kemungkinan key
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Cek Sesi Login (Proteksi Halaman)
+  useEffect(() => {
+    const checkUserSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+      } else {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkUserSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        router.push("/login");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
+
+  const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>(() => {
     if (typeof window !== "undefined") {
-      // 1. Load Category Options
       const savedOptions = localStorage.getItem("categoryOptions");
       if (savedOptions) {
         try {
-          const parsed = JSON.parse(savedOptions);
-          setCategoryOptions({ ...DEFAULT_CATEGORY_OPTIONS, ...parsed });
+          return { ...DEFAULT_CATEGORY_OPTIONS, ...JSON.parse(savedOptions) };
         } catch (e) {
           console.error("Gagal memparsing categoryOptions", e);
         }
       }
+    }
+    return DEFAULT_CATEGORY_OPTIONS;
+  });
 
-      // 2. Load Transactions (Mengecek beberapa kemungkinan nama key sekaligus)
-      const possibleKeys = ["family_transactions", "transactions", "catatan_keuangan", "data_transaksi"];
-      let loadedTransactions: Transaction[] = [];
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("categoryOptions", JSON.stringify(categoryOptions));
+    }
+  }, [categoryOptions]);
 
-      for (const key of possibleKeys) {
-        const savedTx = localStorage.getItem(key);
-        if (savedTx) {
-          try {
-            const parsedTx = JSON.parse(savedTx);
-            if (Array.isArray(parsedTx) && parsedTx.length > 0) {
-              loadedTransactions = parsedTx;
-              break; // Berhenti jika data ditemukan
-            }
-          } catch (e) {
-            console.error(`Gagal memparsing key ${key}`, e);
-          }
-        }
+  // Ambil data transaksi dari Supabase
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("date", { ascending: false });
+
+      if (error) {
+        console.error("Gagal memuat transaksi dari Supabase:", error.message);
+      } else if (data) {
+        const mappedData: Transaction[] = data.map((item: any) => ({
+          id: item.id.toString(),
+          date: item.date,
+          type: item.type,
+          category: item.category,
+          subCategory: item.sub_category || item.subCategory || "-",
+          amount: Number(item.amount),
+        }));
+        setTransactions(mappedData);
       }
+    };
 
-      if (loadedTransactions.length > 0) {
-        setTransactions(loadedTransactions);
-        // Standarisasikan ke key utama agar konsisten
-        localStorage.setItem("family_transactions", JSON.stringify(loadedTransactions));
-      }
+    if (!isCheckingAuth) {
+      fetchTransactions();
     }
 
     const today = new Date().toISOString().split("T")[0];
     setDate(today);
-  }, []);
+  }, [isCheckingAuth]);
 
-  // Sinkronisasi kategori default saat type berubah
-  useEffect(() => {
-    const currentOptions = categoryOptions[type] || [];
-    if (currentOptions.length > 0 && !currentOptions.includes(category)) {
-      setCategory(currentOptions[0]);
-    }
-  }, [type, categoryOptions]);
-
-  const saveToStorage = (newTx: Transaction[]) => {
-    setTransactions(newTx);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("family_transactions", JSON.stringify(newTx));
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
   const handleSaveNewSubCategory = () => {
@@ -146,7 +174,7 @@ export default function Home() {
     setCategory(availableSubCategories[0] || "");
   };
 
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !date) return;
 
@@ -167,38 +195,64 @@ export default function Home() {
       }
     }
 
-    const newTx: Transaction = {
-      id: Date.now().toString(),
+    const newTxPayload = {
       date,
       type,
-      category: category,
-      subCategory: note ? note : "-",
+      category,
+      sub_category: note ? note : "-",
       amount: parsedAmount,
     };
 
-    saveToStorage([newTx, ...transactions]);
-    setNote("");
-    setAmount("");
-    alert("Data berhasil disimpan!");
-  };
+    const { data, error } = await supabase
+      .from("transactions")
+      .insert([newTxPayload])
+      .select();
 
-  const handleDelete = (id: string) => {
-    if (confirm("Yakin ingin menghapus catatan ini?")) {
-      const filtered = transactions.filter((t) => t.id !== id);
-      saveToStorage(filtered);
+    if (error) {
+      alert("Gagal menyimpan ke Supabase: " + error.message);
+    } else if (data && data[0]) {
+      const inserted = data[0];
+      const newTxFormatted: Transaction = {
+        id: inserted.id.toString(),
+        date: inserted.date,
+        type: inserted.type,
+        category: inserted.category,
+        subCategory: inserted.sub_category || "-",
+        amount: Number(inserted.amount),
+      };
+      setTransactions([newTxFormatted, ...transactions]);
+      setNote("");
+      setAmount("");
+      alert("Data berhasil disimpan ke database Supabase!");
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDelete = async (id: string) => {
+    if (confirm("Yakin ingin menghapus catatan ini?")) {
+      const { error } = await supabase
+        .from("transactions")
+        .delete()
+        .match({ id });
+
+      if (error) {
+        alert("Gagal menghapus dari database: " + error.message);
+      } else {
+        const filtered = transactions.filter((t) => t.id !== id);
+        setTransactions(filtered);
+      }
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
         const rows = text.split("\n");
-        const importedList: Transaction[] = [];
+        const importedListPayload = [];
 
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i].trim();
@@ -211,7 +265,7 @@ export default function Home() {
             let rawDate = cols[0]?.replace(/"/g, "").trim();
             const tType = cols[1]?.replace(/"/g, "").trim() || "PENGELUARAN";
             const tCategory = cols[2]?.replace(/"/g, "").trim() || "LAINNYA";
-            const tSub = cols[3]?.replace(/"/g, "").trim() || "";
+            const tSub = cols[3]?.replace(/"/g, "").trim() || "-";
             
             const rawAmount = cols[4]?.replace(/"/g, "").replace(/Rp/gi, "").replace(/\./g, "").replace(/,/g, ".").trim();
             const tAmount = parseFloat(rawAmount);
@@ -225,26 +279,42 @@ export default function Home() {
             }
 
             if (formattedDate && !isNaN(tAmount)) {
-              importedList.push({
-                id: `${Date.now()}-${i}`,
+              importedListPayload.push({
                 date: formattedDate,
                 type: tType,
                 category: tCategory,
-                subCategory: tSub,
+                sub_category: tSub,
                 amount: tAmount,
               });
             }
           }
         }
 
-        if (importedList.length > 0) {
-          const merged = [...importedList, ...transactions];
-          saveToStorage(merged);
-          setImportStatus(`Berhasil mengimpor ${importedList.length} data sekaligus!`);
-          setTimeout(() => {
-            setIsImportModalOpen(false);
-            setImportStatus("");
-          }, 1500);
+        if (importedListPayload.length > 0) {
+          const { data, error } = await supabase
+            .from("transactions")
+            .insert(importedListPayload)
+            .select();
+
+          if (error) {
+            setImportStatus("Gagal mengimpor ke database: " + error.message);
+          } else if (data) {
+            const mappedImported: Transaction[] = data.map((item: any) => ({
+              id: item.id.toString(),
+              date: item.date,
+              type: item.type,
+              category: item.category,
+              subCategory: item.sub_category || "-",
+              amount: Number(item.amount),
+            }));
+
+            setTransactions([...mappedImported, ...transactions]);
+            setImportStatus(`Berhasil mengimpor ${data.length} data ke Supabase!`);
+            setTimeout(() => {
+              setIsImportModalOpen(false);
+              setImportStatus("");
+            }, 1500);
+          }
         } else {
           setImportStatus("Format tidak terbaca. Pastikan file disimpan sebagai CSV.");
         }
@@ -263,11 +333,11 @@ export default function Home() {
     .filter((t) => t.type.toLowerCase().includes("pengeluaran"))
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const totalAsetKekayaan = transactions
+  const totalAsetInvestasi = transactions
     .filter((t) => t.type.toLowerCase().includes("aset"))
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const netAsetTabungan = (totalPemasukan - totalPengeluaran) + totalAsetKekayaan;
+  const netAsetTabungan = (totalPemasukan - totalPengeluaran) + totalAsetInvestasi;
 
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -277,30 +347,47 @@ export default function Home() {
     }).format(val);
   };
 
+  if (isCheckingAuth) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+        <p className="text-xs text-slate-400 animate-pulse">Memeriksa sesi login...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 flex flex-col items-center">
       <div className="w-full max-w-md space-y-4">
         
-        {/* Tombol Atas */}
-        <div className="flex justify-end gap-2">
+        {/* Tombol Atas & Logout */}
+        <div className="flex justify-between items-center">
           <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1 shadow-md"
+            onClick={handleLogout}
+            className="bg-rose-950/80 hover:bg-rose-900 border border-rose-900 text-rose-300 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1 shadow-md"
           >
-            <span>📂</span> Impor Excel
+            <span>🚪</span> Keluar
           </button>
-          <Link
-            href="/dashboard"
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs transition shadow-md"
-          >
-            Buka Dashboard 📊
-          </Link>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1 shadow-md"
+            >
+              <span>📂</span> Impor Excel
+            </button>
+            <Link
+              href="/dashboard"
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs transition shadow-md"
+            >
+              Dashboard 📊
+            </Link>
+          </div>
         </div>
 
         {/* Card Judul */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center shadow-xl space-y-1">
           <h1 className="text-lg font-bold text-white">Financial Planner</h1>
-          <p className="text-[11px] text-slate-400">Catat keuangan harian langsung dari HP</p>
+          <p className="text-[11px] text-slate-400">Catat keuangan harian langsung dari HP (Secured & Supabase)</p>
         </div>
 
         {/* Total Pemasukan */}
@@ -321,10 +408,10 @@ export default function Home() {
           <span className="text-xl">📤</span>
         </div>
 
-        {/* Total Aset & Tabungan */}
+        {/* Total Aset & Investasi */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-lg">
           <div>
-            <p className="text-[11px] text-amber-400 font-medium">Total Aset & Tabungan</p>
+            <p className="text-[11px] text-amber-400 font-medium">Total Aset & Investasi</p>
             <p className="text-lg font-extrabold text-amber-400 font-mono mt-0.5">{formatRupiah(netAsetTabungan)}</p>
           </div>
           <span className="text-xl">💰</span>
@@ -355,36 +442,42 @@ export default function Home() {
               >
                 <option value="Pemasukan">Pemasukan</option>
                 <option value="Pengeluaran">Pengeluaran</option>
-                <option value="Aset">Aset & Kekayaan</option>
+                <option value="Aset">Aset & Investasi</option>
               </select>
             </div>
 
             <div>
                <label className="block text-slate-400 mb-1">3. Sub Kategori</label>
                {!isCustomSubCategory ? (
-                 <select
-                   value={category}
-                   onChange={(e) => {
-                     const val = e.target.value;
-                     if (val === "__ADD_NEW__") {
-                       setIsAddSubModalOpen(true);
-                     } else if (val === "__DELETE_SUBCAT__") {
-                       handleDeleteSubCategory();
-                     } else {
-                       setCategory(val);
-                     }
-                   }}
-                   className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 cursor-pointer"
-                 >
-                   <option value="" disabled>Pilih Sub Kategori</option>
-                   {Array.isArray(categoryOptions[type]) && categoryOptions[type].map((subCat: string) => (
-                     <option key={subCat} value={subCat}>
-                       {subCat}
-                     </option>
-                   ))}
-                   <option value="__ADD_NEW__" className="text-emerald-400 font-semibold">+ Tambah Sub Kategori Lain...</option>
-                   <option value="__DELETE_SUBCAT__" className="text-red-400 font-semibold">- Hapus Sub Kategori Ini...</option>
-                 </select>
+                 isMounted ? (
+                   <select
+                     value={category}
+                     onChange={(e) => {
+                       const val = e.target.value;
+                       if (val === "__ADD_NEW__") {
+                         setIsAddSubModalOpen(true);
+                       } else if (val === "__DELETE_SUBCAT__") {
+                         handleDeleteSubCategory();
+                       } else {
+                         setCategory(val);
+                       }
+                     }}
+                     className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800"
+                   >
+                     <option value="" disabled>Pilih Sub Kategori</option>
+                     {Array.isArray(categoryOptions[type]) && categoryOptions[type].map((subCat: string) => (
+                       <option key={subCat} value={subCat}>
+                         {subCat}
+                       </option>
+                     ))}
+                     <option value="__ADD_NEW__" className="text-emerald-400 font-semibold">+ Tambah Sub Kategori Lain...</option>
+                     <option value="__DELETE_SUBCAT__" className="text-red-400 font-semibold">- Hapus Sub Kategori Ini...</option>
+                   </select>
+                 ) : (
+                   <div className="w-full bg-slate-950 text-slate-500 px-3 py-2.5 rounded-xl border border-slate-800">
+                     Memuat pilihan...
+                   </div>
+                 )
                ) : (
                  <div className="space-y-2">
                    <input
@@ -436,7 +529,7 @@ export default function Home() {
               type="submit"
               className="w-full bg-slate-100 hover:bg-white text-slate-950 font-bold py-3 rounded-xl transition shadow-md mt-2"
             >
-              Simpan Data
+              Simpan Data ke Database
             </button>
           </form>
         </div>
@@ -490,7 +583,7 @@ export default function Home() {
           <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4">
             <h3 className="text-sm font-bold text-white">Impor Data Excel (Beberapa Bulan Sekaligus)</h3>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Simpan file Excel Anda ke format <b className="text-emerald-400">CSV (Comma Delimited)</b>. Anda bisa mengimpor data 5 bulan sekaligus atau lebih tanpa batasan!
+              Simpan file Excel Anda ke format <b className="text-emerald-400">CSV (Comma Delimited)</b>. Data akan langsung dimasukkan ke database Supabase!
             </p>
 
             <div className="border-2 border-dashed border-slate-700 hover:border-emerald-500 transition rounded-xl p-5 text-center cursor-pointer bg-slate-950 relative">
