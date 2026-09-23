@@ -1,5 +1,6 @@
 "use client";
 
+import { supabase } from "@/app/lib/supabase";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
@@ -56,12 +57,31 @@ export default function AnnualReportPage() {
   const allIncomesSubCategories: string[] = categoryOptions["Pemasukan"] || [];
   const allExpenseSubCategories: string[] = categoryOptions["Pengeluaran"] || [];
   
-  useEffect(() => {
-    const saved = localStorage.getItem("family_transactions");
-    if (saved) {
+useEffect(() => {
+    const fetchAnnualData = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        // Mengambil data transaksi langsung dari Supabase
+        const { data, error } = await supabase
+          .from("transactions")
+          .select("*")
+          .order("date", { ascending: false });
+
+        if (error) {
+          console.error("Gagal memuat transaksi tahunan dari Supabase:", error.message);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const parsed = data.map((item: any) => ({
+            id: item.id.toString(),
+            date: item.date,
+            type: item.type,
+            category: item.category || "",
+            subCategory: item.sub_category || "-",
+            description: item.description || "",
+            amount: Number(item.amount),
+          }));
+
           setTransactions(parsed);
 
           const yearsSet = new Set<string>();
@@ -82,11 +102,15 @@ export default function AnnualReportPage() {
             setAvailableYears(years);
             setSelectedYear(years[0]);
           }
+        } else {
+          setTransactions([]);
         }
       } catch (e) {
-        console.error("Gagal parsing JSON dari family_transactions", e);
+        console.error("Gagal memuat data dari Supabase", e);
       }
-    }
+    };
+
+    fetchAnnualData();
   }, []);
 
   const formatRupiah = (val: number) => {

@@ -530,7 +530,7 @@ export default function Home() {
               type="submit"
               className="w-full bg-slate-100 hover:bg-white text-slate-950 font-bold py-3 rounded-xl transition shadow-md mt-2"
             >
-              Simpan Data ke Database
+              Simpan
             </button>
           </form>
         </div>
