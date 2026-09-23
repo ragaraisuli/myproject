@@ -91,6 +91,7 @@ export default function Home() {
         }));
         setTransactions(mappedData);
         // Ekstrak sub kategori unik dari data Supabase berdasarkan tipenya
+// Ekstrak kategori unik dari data Supabase berdasarkan tipenya
         const extracted: Record<string, Set<string>> = {
           Pemasukan: new Set(),
           Pengeluaran: new Set(),
@@ -99,13 +100,13 @@ export default function Home() {
 
         mappedData.forEach((t) => {
           const tType = t.type;
-          const subCat = t.category; 
-          if (tType && subCat && subCat !== "-") {
+          const cat = t.category; // Ambil dari kolom kategori utama
+          if (tType && cat && cat !== "-") {
             const matchedKey = Object.keys(DEFAULT_CATEGORY_OPTIONS).find(
               (k) => k.toLowerCase() === tType.toLowerCase()
             );
             if (matchedKey) {
-              extracted[matchedKey].add(subCat.toUpperCase());
+              extracted[matchedKey].add(cat.toUpperCase());
             }
           }
         });
@@ -217,13 +218,13 @@ const handleDeleteSubCategory = () => {
       }
     }
 
-    const newTxPayload = {
-      date,
-      type,
-      category,
-      sub_category: note ? note : "-",
-      amount: parsedAmount,
-    };
+const newTxPayload = {
+  date: date,
+  type: type,          // Contoh: "Pengeluaran"
+  category: type,      // Kategori utama (Pengeluaran / Pemasukan)
+  sub_category: category, // Nama sub-kategori yang diinput user (misal: "AIR", "LISTRIK")
+  amount: parsedAmount,
+};
 
     const { data, error } = await supabase
       .from("transactions")
