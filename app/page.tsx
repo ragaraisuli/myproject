@@ -70,26 +70,6 @@ export default function Home() {
     };
   }, [router]);
 
-  const [storedCategoryOptions, setStoredCategoryOptions] = useState<Record<string, string[]>>(() => {
-    if (typeof window !== "undefined") {
-      const savedOptions = localStorage.getItem("categoryOptions");
-      if (savedOptions) {
-        try {
-          return { ...DEFAULT_CATEGORY_OPTIONS, ...JSON.parse(savedOptions) };
-        } catch (e) {
-          console.error("Gagal memparsing categoryOptions", e);
-        }
-      }
-    }
-    return DEFAULT_CATEGORY_OPTIONS;
-  });
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("categoryOptions", JSON.stringify(storedCategoryOptions));
-    }
-  }, [storedCategoryOptions]);
-
   // Ambil data transaksi dari Supabase
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -148,9 +128,9 @@ export default function Home() {
 
   // Gabungkan pilihan default dengan sub kategori yang tersimpan di Supabase
   const categoryOptions: Record<string, string[]> = {
-    Pemasukan: Array.from(new Set([...(storedCategoryOptions.Pemasukan || []), ...(dynamicSubCategories.Pemasukan || [])])),
-    Pengeluaran: Array.from(new Set([...(storedCategoryOptions.Pengeluaran || []), ...(dynamicSubCategories.Pengeluaran || [])])),
-    Aset: Array.from(new Set([...(storedCategoryOptions.Aset || []), ...(dynamicSubCategories.Aset || [])])),
+    Pemasukan: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pemasukan, ...(dynamicSubCategories.Pemasukan || [])])),
+    Pengeluaran: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pengeluaran, ...(dynamicSubCategories.Pengeluaran || [])])),
+    Aset: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Aset, ...(dynamicSubCategories.Aset || [])])),
   };
 
   const handleLogout = async () => {
@@ -185,7 +165,7 @@ const handleSaveNewSubCategory = () => {
     setNewSubName("");
   };
 
-  const handleDeleteSubCategory = () => {
+const handleDeleteSubCategory = () => {
     if (!category) return;
     const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus sub kategori "${category}" dari kategori ${type}?`);
     if (!confirmDelete) return;
@@ -193,14 +173,13 @@ const handleSaveNewSubCategory = () => {
     const currentOptions = categoryOptions[type] || [];
     const updatedOptions = currentOptions.filter((item) => item !== category);
 
-    const updatedMap = {
-      ...categoryOptions,
-      [type]: updatedOptions,
-    };
-    setStoredCategoryOptions(updatedMap);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("categoryOptions", JSON.stringify(updatedMap));
-    }
+    // Perbarui state dynamicSubCategories agar sub kategori terhapus dari memori secara dinamis
+    setDynamicSubCategories((prev) => ({
+      ...prev,
+      [type]: (prev[type] || []).filter((item) => item !== category),
+    }));
+
+    // Pilih otomatis opsi pertama yang tersisa
     setCategory(updatedOptions[0] || "");
   };
 
@@ -228,15 +207,13 @@ const handleSaveNewSubCategory = () => {
 
     if (category && category.trim() !== "") {
       const currentOptions = categoryOptions[type] || [];
-      if (!currentOptions.includes(category)) {
-        const updated = {
-          ...categoryOptions,
-          [type]: [...currentOptions, category]
-        };
-        setStoredCategoryOptions(updated);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("categoryOptions", JSON.stringify(updated));
-        }
+      const capitalizedCategory = category.toUpperCase();
+      
+      if (!currentOptions.includes(capitalizedCategory)) {
+        setDynamicSubCategories((prev) => ({
+          ...prev,
+          [type]: [...(prev[type] || []), capitalizedCategory],
+        }));
       }
     }
 

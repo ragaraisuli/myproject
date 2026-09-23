@@ -32,30 +32,42 @@ const monthNames = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ];
 
+const DEFAULT_CATEGORY_OPTIONS: Record<string, string[]> = {
+  Pemasukan: ["GAJI SUAMI", "GAJI ISTRI"],
+  Pengeluaran: [],
+};
+
 export default function AnnualReportPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>("2026");
   const [availableYears, setAvailableYears] = useState<string[]>(["2026"]);
 
-  // Ambil data sub-kategori secara dinamis dari localStorage setiap halaman dimuat
-  const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>({});
+// Ambil sub-kategori secara dinamis langsung dari data transaksi yang ada di Supabase
+  const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>({
+    Pemasukan: [...DEFAULT_CATEGORY_OPTIONS.Pemasukan],
+    Pengeluaran: [...DEFAULT_CATEGORY_OPTIONS.Pengeluaran],
+  });
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedOptions = localStorage.getItem("categoryOptions");
-      if (savedOptions) {
-        try {
-          setCategoryOptions(JSON.parse(savedOptions));
-        } catch (e) {
-          console.error("Gagal memparsing categoryOptions", e);
-        }
-      }
-    }
-  }, []);
+  // Di dalam fungsi fetch / useEffect saat data transaksi berhasil didapat dari Supabase, 
+  // tambahkan logika ekstraksi ini:
+  const dynamicIncomes = Array.from(
+    new Set(
+      transactions
+        .filter((t) => t.type?.toLowerCase().includes("pemasukan") && t.category)
+        .map((t) => t.category!.trim().toUpperCase())
+    )
+  );
 
-  // Definisikan list sub kategori berdasarkan data dinamis
-  const allIncomesSubCategories: string[] = categoryOptions["Pemasukan"] || [];
-  const allExpenseSubCategories: string[] = categoryOptions["Pengeluaran"] || [];
+  const dynamicExpenses = Array.from(
+    new Set(
+      transactions
+        .filter((t) => t.type?.toLowerCase().includes("pengeluaran") && t.category)
+        .map((t) => t.category!.trim().toUpperCase())
+    )
+  );
+
+  const allIncomesSubCategories = Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pemasukan, ...dynamicIncomes]));
+  const allExpenseSubCategories = Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pengeluaran, ...dynamicExpenses]));
   
 useEffect(() => {
     const fetchAnnualData = async () => {
@@ -122,7 +134,7 @@ useEffect(() => {
     }).format(val);
   };
 
-  const getIncomeByMonthAndSub = (monthIndex: number, subCat: string) => {
+  const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) => {
     const targetMonth = monthIndex + 1;
     return transactions
       .filter((t) => {
@@ -136,7 +148,7 @@ useEffect(() => {
         if (!isYearMonthMatch) return false;
     const itemSubCat = (t.subCategory || "").trim().toLowerCase();
     const itemMainCat = (t.category || "").trim().toLowerCase();
-    const target = subCat.trim().toLowerCase();
+    const target = (subCat || "").trim().toLowerCase();
 
     if (target === "gaji suami") {
       return itemSubCat === "gaji suami" || itemMainCat === "gaji suami" || itemSubCat === "gaji_suami" || itemMainCat === "gaji_suami";
@@ -231,6 +243,7 @@ useEffect(() => {
     XLSX.utils.book_append_sheet(wb, wsIncome, "Pendapatan");
 
     const expenseRows = allExpenseSubCategories
+      .filter((sub): sub is string => typeof sub === "string")
       .map((sub) => {
         const rowTotal = monthNames.reduce((acc, _, idx) => acc + getExpenseByMonthAndSub(idx, sub), 0);
         if (rowTotal === 0) return null;
