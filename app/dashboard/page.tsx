@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { supabase } from "../lib/supabase";
 
 type Transaction = {
   id: string;
@@ -25,24 +26,43 @@ export default function DashboardPage() {
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>({ "Pengeluaran": [] });
 
-  // Load data aman menggunakan setTimeout agar UI langsung tampil tanpa blank/loading lama
+// Load data aman langsung dari Supabase
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const fetchDashboardData = async () => {
+      const currentYearMonth = new Date().toISOString().substring(0, 7);
       try {
         const savedCategory = localStorage.getItem("categoryOptions");
         if (savedCategory) {
           setCategoryOptions(JSON.parse(savedCategory));
         }
 
-        const savedTransactions = localStorage.getItem("family_transactions");
-        const currentYearMonth = new Date().toISOString().substring(0, 7);
+        // Mengambil data transaksi dari database Supabase
+        const { data, error } = await supabase
+          .from("transactions")
+          .select("*")
+          .order("date", { ascending: false });
 
-        if (savedTransactions) {
-          const parsed: Transaction[] = JSON.parse(savedTransactions);
-          setTransactions(parsed);
+        if (error) {
+          console.error("Gagal memuat transaksi dari Supabase:", error.message);
+          setAvailablePeriods([currentYearMonth]);
+          setSelectedPeriod(currentYearMonth);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const mappedData: Transaction[] = data.map((item: any) => ({
+            id: item.id.toString(),
+            date: item.date,
+            type: item.type,
+            category: item.category || "",
+            subCategory: item.sub_category || "-",
+            amount: Number(item.amount),
+          }));
+
+          setTransactions(mappedData);
 
           const periodsSet = new Set<string>();
-          parsed.forEach((t) => {
+          mappedData.forEach((t) => {
             if (t.date && t.date.length >= 7) {
               periodsSet.add(t.date.substring(0, 7));
             }
@@ -56,20 +76,19 @@ export default function DashboardPage() {
           setAvailablePeriods(periods);
           setSelectedPeriod(periods.includes(currentYearMonth) ? currentYearMonth : periods[0]);
         } else {
+          setTransactions([]);
           setAvailablePeriods([currentYearMonth]);
           setSelectedPeriod(currentYearMonth);
         }
       } catch (e) {
         console.error("Gagal memuat data:", e);
-        const currentYearMonth = new Date().toISOString().substring(0, 7);
         setAvailablePeriods([currentYearMonth]);
         setSelectedPeriod(currentYearMonth);
       }
-    }, 50);
+    };
 
-    return () => clearTimeout(timer);
+    fetchDashboardData();
   }, []);
-
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",

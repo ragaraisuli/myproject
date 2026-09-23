@@ -172,6 +172,7 @@ export default function Home() {
     setType(newType);
     const availableSubCategories = categoryOptions[newType] || [];
     setCategory(availableSubCategories[0] || "");
+    setIsCustomSubCategory(false);
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
