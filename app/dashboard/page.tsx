@@ -201,8 +201,8 @@ const exportToExcel = () => {
       "ID": t.id,
       "Tanggal": t.date,
       "Tipe": t.type,
-      "Kategori Utama": getMainCat(t),
-      "Keterangan / Sub": getSubCat(t),
+      "Kategori Utama": getSubCat(t),
+      "Keterangan / Sub": getMainCat(t),
       "Nominal": t.amount,
     }));
 
