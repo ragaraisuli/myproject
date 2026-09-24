@@ -12,6 +12,26 @@ export default function LoginPage() {
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" } | null>(null);
   const router = useRouter();
 
+  const handleForgotPassword = async () => {
+  // Mengambil nilai email dari state/input yang sedang diketik pengguna
+  const emailInput = (document.getElementById("email") as HTMLInputElement)?.value;
+  
+  if (!emailInput) {
+    alert("Silakan masukkan email Anda terlebih dahulu pada kolom email.");
+    return;
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(emailInput, {
+    redirectTo: `${window.location.origin}/dashboard`,
+  });
+
+  if (error) {
+    alert("Gagal mengirim email pemulihan: " + error.message);
+  } else {
+    alert("Tautan pemulihan kata sandi telah dikirim ke email Anda. Silakan cek inbox/spam.");
+  }
+};
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -111,6 +131,18 @@ export default function LoginPage() {
             {loading ? "Memproses..." : isSignUp ? "Daftar Akun (Sign Up)" : "Masuk (Login)"}
           </button>
         </form>
+
+{!isSignUp && (
+  <div className="text-right mb-4">
+    <button
+      type="button"
+      onClick={handleForgotPassword} // <-- Hubungkan ke fungsi di atas
+      className="text-xs text-slate-400 hover:text-emerald-400 transition"
+    >
+      Lupa Password?
+    </button>
+  </div>
+)}
 
         <div className="text-center pt-2 border-t border-slate-800/80">
           <button
