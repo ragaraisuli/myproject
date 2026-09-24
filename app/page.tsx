@@ -207,7 +207,6 @@ const handleDeleteSubCategory = () => {
     if (!session) return;
 
     // Tambahkan juga ke dynamicSubCategories jika belum ada
-// Tambahkan juga ke dynamicSubCategories jika belum ada
     if (category && !categoryOptions[type]?.includes(category)) {
       // 1. Simpan sub-kategori baru ke tabel sub_categories Supabase
       await supabase.from("sub_categories").insert([
