@@ -24,7 +24,7 @@ const handleForgotPassword = async () => {
     : `${cleanUserId}@gmail.com`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(emailToUse, {
-    redirectTo: `${window.location.origin}/dashboard`,
+    redirectTo: `https://myproject-finance.vercel.app/dashboard`,
   });
 
   if (error) {
