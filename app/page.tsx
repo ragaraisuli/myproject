@@ -200,6 +200,7 @@ const handleDeleteSubCategory = () => {
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!amount || !date) return;
 
     // Tambahkan juga ke dynamicSubCategories jika belum ada
@@ -212,6 +213,9 @@ const handleDeleteSubCategory = () => {
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount)) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
     if (category && category.trim() !== "") {
       const currentOptions = categoryOptions[type] || [];
@@ -239,6 +243,7 @@ if (!currentOptions.includes(capitalizedCategory)) {
     }
 
 const newTxPayload = {
+  user_id: session.user.id,
   date: date,
   type: type,                 // Contoh: "Pengeluaran"
   category: category,         // Kategori utama (misal: "GAS", "LISTRIK", dll)
