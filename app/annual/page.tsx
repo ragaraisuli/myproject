@@ -70,12 +70,17 @@ export default function AnnualReportPage() {
   const allExpenseSubCategories = Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pengeluaran, ...dynamicExpenses]));
   
 useEffect(() => {
-    const fetchAnnualData = async () => {
+const fetchAnnualData = async () => {
       try {
-        // Mengambil data transaksi langsung dari Supabase
+        // 1. Ambil sesi pengguna yang sedang aktif
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        // 2. Mengambil data transaksi tahunan dengan filter user_id
         const { data, error } = await supabase
           .from("transactions")
           .select("*")
+          .eq("user_id", session.user.id) // <-- Tambahkan filter ini!
           .order("date", { ascending: false });
 
         if (error) {

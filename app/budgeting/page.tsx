@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "./supabase";
 
 type Priority = "HIGH" | "MEDIUM" | "LOW";
 
 type BudgetGoal = {
   id: string;
+  user_id?: string;
   description: string;
   amount: number;
   startMonth: number; // 1 - 12
@@ -23,14 +25,11 @@ const MONTH_NAMES = [
 ];
 
 export default function BudgetingPage() {
+  const supabase = createClient();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1; // 1 - 12
 
-  const [goals, setGoals] = useState<BudgetGoal[]>([
-    { id: "1", description: "BAYAR KONTRAKAN", amount: 20000000, startMonth: 4, startYear: currentYear, targetMonth: 12, targetYear: currentYear, priority: "HIGH", savedAmount: 5000000 },
-    { id: "2", description: "QURBAN", amount: 3000000, startMonth: 2, startYear: currentYear, targetMonth: 11, targetYear: currentYear, priority: "MEDIUM", savedAmount: 1000000 },
-  ]);
-
+  const [goals, setGoals] = useState<BudgetGoal[]>([]);
   const [activeYear, setActiveYear] = useState<number>(currentYear);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,34 +42,43 @@ export default function BudgetingPage() {
   const [savedInput, setSavedInput] = useState("");
   const [priorityInput, setPriorityInput] = useState<Priority>("MEDIUM");
 
-  useEffect(() => {
-    const saved = localStorage.getItem("family_budget_goals_v4");
-    if (saved) {
-      try {
-        setGoals(JSON.parse(saved));
-      } catch {}
-    } else {
-      const oldSaved = localStorage.getItem("family_budget_goals_v3") || localStorage.getItem("family_budget_goals");
-      if (oldSaved) {
-        try {
-          const parsedOld = JSON.parse(oldSaved);
-          const migrated = parsedOld.map((g: any) => ({
-            ...g,
-            startYear: g.startYear || currentYear,
-            targetYear: g.targetYear || currentYear,
-            priority: g.priority || "MEDIUM",
-            savedAmount: g.savedAmount || 0,
-          }));
-          setGoals(migrated);
-        } catch {}
-      }
-    }
-  }, [currentYear]);
+  // Ambil data dari Supabase berdasarkan user_id yang aktif
+  const fetchGoals = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-  const saveToStorage = (newGoals: BudgetGoal[]) => {
-    setGoals(newGoals);
-    localStorage.setItem("family_budget_goals_v4", JSON.stringify(newGoals));
+      const { data, error } = await supabase
+        .from("budget_goals") // Pastikan nama tabel Anda di Supabase sesuai
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("startYear", { ascending: true });
+
+      if (error) throw error;
+      if (data) {
+        // Map kolom dari database jika diperlukan
+        const formatted = data.map((item: any) => ({
+          id: item.id,
+          user_id: item.user_id,
+          description: item.description,
+          amount: item.amount,
+          startMonth: item.start_month || item.startMonth,
+          startYear: item.start_year || item.startYear,
+          targetMonth: item.target_month || item.targetMonth,
+          targetYear: item.target_year || item.targetYear,
+          priority: item.priority || "MEDIUM",
+          savedAmount: item.saved_amount || item.savedAmount || 0,
+        }));
+        setGoals(formatted);
+      }
+    } catch (err) {
+      console.error("Gagal mengambil data budget goals:", err);
+    }
   };
+
+  useEffect(() => {
+    fetchGoals();
+  }, []);
 
   const formatRupiah = (val: number) => {
     if (isNaN(val) || val === 0) return "Rp 0";
@@ -88,7 +96,6 @@ export default function BudgetingPage() {
     return diff > 0 ? diff : 1;
   };
 
-  // Hitung berapa bulan yang sudah terlewat dari start sampai bulan/tahun saat ini
   const calculateProgressPercentage = (goal: BudgetGoal) => {
     const startTotal = goal.startYear * 12 + goal.startMonth;
     const targetTotal = goal.targetYear * 12 + goal.targetMonth;
@@ -129,14 +136,19 @@ export default function BudgetingPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Hapus target budgeting ini?")) {
-      const filtered = goals.filter((g) => g.id !== id);
-      saveToStorage(filtered);
+      try {
+        const { error } = await supabase.from("budget_goals").delete().eq("id", id);
+        if (error) throw error;
+        setGoals(goals.filter((g) => g.id !== id));
+      } catch (err) {
+        alert("Gagal menghapus target.");
+      }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!descInput.trim() || !amountInput || !startMonthInput || !targetMonthInput) return;
 
@@ -155,41 +167,45 @@ export default function BudgetingPage() {
       return;
     }
 
-    if (editingId) {
-      const updated = goals.map((g) =>
-        g.id === editingId
-          ? {
-              ...g,
-              description: descInput.toUpperCase(),
-              amount: numAmount,
-              savedAmount: numSaved,
-              startMonth: sMonth,
-              startYear: sYear,
-              targetMonth: tMonth,
-              targetYear: tYear,
-              priority: priorityInput,
-            }
-          : g
-      );
-      saveToStorage(updated);
-    } else {
-      const newGoal: BudgetGoal = {
-        id: Date.now().toString(),
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const payload = {
+        user_id: session.user.id,
         description: descInput.toUpperCase(),
         amount: numAmount,
-        savedAmount: numSaved,
-        startMonth: sMonth,
-        startYear: sYear,
-        targetMonth: tMonth,
-        targetYear: tYear,
+        saved_amount: numSaved,
+        start_month: sMonth,
+        start_year: sYear,
+        target_month: tMonth,
+        target_year: tYear,
         priority: priorityInput,
       };
-      saveToStorage([...goals, newGoal]);
+
+      if (editingId) {
+        const { error } = await supabase
+          .from("budget_goals")
+          .update(payload)
+          .eq("id", editingId);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("budget_goals")
+          .insert([payload]);
+
+        if (error) throw error;
+      }
+
+      setIsModalOpen(false);
+      fetchGoals(); // Refresh data dari database
+    } catch (err) {
+      console.error("Gagal menyimpan data:", err);
+      alert("Terjadi kesalahan saat menyimpan data ke database.");
     }
-    setIsModalOpen(false);
   };
 
-  // Fungsi Ekspor Data ke CSV
   const handleExportCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,Keterangan,Prioritas,Total Target (Rp),Sudah Terkumpul (Rp),Mulai,Target Jatuh Tempo\n";
     

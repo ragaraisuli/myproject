@@ -36,12 +36,16 @@ export default function DashboardPage() {
         if (savedCategory) {
           setCategoryOptions(JSON.parse(savedCategory));
         }
+// 1. Ambil sesi pengguna yang sedang aktif
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
-        // Mengambil data transaksi dari database Supabase
-        const { data, error } = await supabase
-          .from("transactions")
-          .select("*")
-          .order("date", { ascending: false });
+    // 2. Mengambil data transaksi dari database Supabase dengan filter user_id
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("user_id", session.user.id) // <-- Tambahkan filter isolasi ini!
+      .order("date", { ascending: false });
 
         if (error) {
           console.error("Gagal memuat transaksi dari Supabase:", error.message);
