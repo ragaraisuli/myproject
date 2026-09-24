@@ -69,7 +69,7 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setMessage({ text: "User ID atau Password salah!", type: "error" });
+        setMessage({ text: "Email atau Password salah!", type: "error" });
         setLoading(false);
       } else {
         router.push("/");
@@ -100,13 +100,13 @@ export default function LoginPage() {
 
         <form onSubmit={handleAuth} className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-400 mb-1">User ID</label>
+            <label className="block text-slate-400 mb-1">Email</label>
             <input
               type="text"
               required
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              placeholder="Contoh: finance"
+              placeholder="Contoh: finance (tanpa @gmail.com)"
               className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 outline-none focus:border-emerald-500"
             />
           </div>
