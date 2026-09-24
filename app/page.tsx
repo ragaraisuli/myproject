@@ -203,19 +203,30 @@ const handleDeleteSubCategory = () => {
 
     if (!amount || !date) return;
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
     // Tambahkan juga ke dynamicSubCategories jika belum ada
-      if (category && !categoryOptions[type]?.includes(category)) {
-        setDynamicSubCategories({
-          ...dynamicSubCategories,
-          [type]: [...(dynamicSubCategories[type] || []), category],
-        });
-      }
+// Tambahkan juga ke dynamicSubCategories jika belum ada
+    if (category && !categoryOptions[type]?.includes(category)) {
+      // 1. Simpan sub-kategori baru ke tabel sub_categories Supabase
+      await supabase.from("sub_categories").insert([
+        {
+          user_id: session.user.id,
+          type: type,
+          name: category,
+        }
+      ]);
+
+      // 2. Update state lokal
+      setDynamicSubCategories({
+        ...dynamicSubCategories,
+        [type]: [...(dynamicSubCategories[type] || []), category],
+      });
+    }
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount)) return;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
 
     if (category && category.trim() !== "") {
       const currentOptions = categoryOptions[type] || [];
@@ -223,16 +234,13 @@ const handleDeleteSubCategory = () => {
       
 if (!currentOptions.includes(capitalizedCategory)) {
       // 1. Simpan sub-kategori baru ke tabel sub_categories Supabase
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await supabase.from("sub_categories").insert([
-          {
-            user_id: session.user.id,
-            type: type,
-            name: capitalizedCategory,
-          }
-        ]);
-      }
+      await supabase.from("sub_categories").insert([
+        {
+          user_id: session.user.id,
+          type: type,
+          name: capitalizedCategory,
+        }
+      ]);
 
       // 2. Update state lokal
       setDynamicSubCategories((prev) => ({
