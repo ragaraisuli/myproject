@@ -128,7 +128,18 @@ export default function DashboardPage() {
 
   const sisaSaldo = totalPemasukan - totalPengeluaran;
   const isDefisit = sisaSaldo < 0;
+// Logika Tambahan untuk Financial Health Score
+  const savingsRate = totalPemasukan > 0 ? (sisaSaldo / totalPemasukan) * 100 : 0;
 
+  const getHealthStatus = () => {
+    if (totalPemasukan === 0 && totalPengeluaran === 0) return { label: "Belum Ada Data", color: "text-gray-400", bg: "bg-gray-900/60 border-gray-800" };
+    if (isDefisit) return { label: "Defisit (Waspada)", color: "text-red-400", bg: "bg-red-950/40 border-red-800/60" };
+    if (savingsRate >= 30) return { label: "Sangat Sehat (Excellent)", color: "text-emerald-400", bg: "bg-emerald-950/40 border-emerald-800/60" };
+    if (savingsRate >= 10) return { label: "Sehat & Stabil (Good)", color: "text-blue-400", bg: "bg-blue-950/40 border-blue-800/60" };
+    return { label: "Perlu Perhatian (Fair)", color: "text-yellow-400", bg: "bg-yellow-950/40 border-yellow-800/60" };
+  };
+
+  const health = getHealthStatus();
   const getPreviousAccumulatedBalance = () => {
     if (!selectedPeriod) return 0;
     const pastTransactions = transactions.filter((t) => {
@@ -475,7 +486,27 @@ const exportToExcel = () => {
 
         </div>
 
-        {/* Baris 2: Pemasukan & Aset */}
+        {/* Baris 2: KARTU FINANCIAL HEALTH SCORE, Pemasukan & Aset */}
+<div className={`mb-6 p-6 rounded-2xl border ${health.bg} shadow-xl backdrop-blur-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4`}>
+  <div>
+    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Financial Health Score</div>
+    <div className={`text-xl font-extrabold mt-1 ${health.color}`}>{health.label}</div>
+    <p className="text-xs text-gray-400 mt-1">Berdasarkan rasio tabungan terhadap total pemasukan bulan berjalan.</p>
+  </div>
+  <div className="flex items-center gap-6 bg-gray-900/60 px-5 py-3 rounded-xl border border-gray-800">
+    <div>
+      <div className="text-xs text-gray-400">Rasio Tabungan</div>
+      <div className="text-lg font-bold text-white">{savingsRate.toFixed(1)}%</div>
+    </div>
+    <div className="h-8 w-[1px] bg-gray-800"></div>
+    <div>
+      <div className="text-xs text-gray-400">Sisa Saldo</div>
+      <div className={`text-lg font-bold ${sisaSaldo >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        Rp {sisaSaldo.toLocaleString('id-ID')}
+      </div>
+    </div>
+  </div>
+</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           
           <div className="bg-slate-900 border border-slate-800 p-5 sm:p-6 rounded-2xl shadow-lg flex flex-col justify-between">
