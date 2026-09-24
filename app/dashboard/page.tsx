@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import * as XLSX from "xlsx";
 
 type Transaction = {
   id: string;
@@ -188,30 +189,41 @@ export default function DashboardPage() {
       assetSummaryMap[sub] = (assetSummaryMap[sub] || 0) + (t.amount || 0);
     });
 
-  const exportToExcel = () => {
+const exportToExcel = () => {
     if (periodTransactions.length === 0) {
       alert("Tidak ada data transaksi pada periode ini untuk diexport.");
       return;
     }
 
-    const headers = ["ID", "Tanggal", "Tipe", "Sub Kategori", "Keterangan Bebas", "Nominal"];
-    const rows = periodTransactions.map((t) => [
-      t.id,
-      t.date,
-      t.type,
-      `"${getMainCat(t)}"`,
-      `"${getSubCat(t)}"`,
-      t.amount,
-    ]);
+    // 1. Siapkan data dengan format kolom yang rapi
+    const exportData = periodTransactions.map((t, index) => ({
+      "No": index + 1,
+      "ID": t.id,
+      "Tanggal": t.date,
+      "Tipe": t.type,
+      "Kategori Utama": getMainCat(t),
+      "Keterangan / Sub": getSubCat(t),
+      "Nominal": t.amount,
+    }));
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `laporan_keuangan_${selectedPeriod}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // 2. Buat worksheet dan workbook menggunakan xlsx
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Daftar Transaksi");
+
+    // 3. Atur lebar kolom agar proporsional
+    worksheet["!cols"] = [
+      { wch: 5 },  // No
+      { wch: 8 },  // ID
+      { wch: 12 }, // Tanggal
+      { wch: 15 }, // Tipe
+      { wch: 20 }, // Kategori Utama
+      { wch: 20 }, // Keterangan / Sub
+      { wch: 15 }, // Nominal
+    ];
+
+    // 4. Download file berformat .xlsx resmi
+    XLSX.writeFile(workbook, `Laporan_Keuangan_${selectedPeriod}.xlsx`);
   };
 
     function getTargetForSubCategory(subCat: string, selectedPeriod: string) {
