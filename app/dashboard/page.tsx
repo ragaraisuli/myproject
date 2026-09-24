@@ -544,31 +544,49 @@ export default function DashboardPage() {
                   <th className="p-3 font-semibold text-center">STATUS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {categoryOptions["Pengeluaran"]?.map((subCat: string) => {
-                  const key = subCat.toUpperCase();
+<tbody className="divide-y divide-slate-800/60">
+  {categoryOptions["Pengeluaran"]?.map((subCat: string) => {
+    const key = subCat.toUpperCase();
 
-                  const targetVal = getTargetForSubCategory(subCat, selectedPeriod);
-                  const actualVal = periodTransactions
-                    .filter((t) => t.type.toLowerCase().includes("pengeluaran") && getSubCat(t) === key)
-                    .reduce((sum, t) => sum + t.amount, 0);
+    const targetVal = getTargetForSubCategory(subCat, selectedPeriod);
+    
+    // Perbaikan filter: Memeriksa t.category DAN t.subCategory secara fleksibel
+    const actualVal = periodTransactions
+      .filter(
+        (t) =>
+          t.type.toLowerCase().includes("pengeluaran") &&
+          (t.category?.toUpperCase() === key ||
+            t.subCategory?.toUpperCase() === key ||
+            (typeof getSubCat === "function" && getSubCat(t) === key))
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
 
-                  const isOver = actualVal > targetVal && targetVal > 0;
+    const isOver = actualVal > targetVal && targetVal > 0;
 
-                  return (
-                    <tr key={subCat} className="hover:bg-slate-950/50 transition">
-                      <td className="p-3 text-slate-200 font-bold">{subCat}</td>
-                      <td className="p-3 text-right font-mono text-slate-300">{formatRupiah(targetVal)}</td>
-                      <td className="p-3 text-right font-mono text-rose-400 font-bold">{formatRupiah(actualVal)}</td>
-                      <td className="p-3 text-center">
-                        <span className={`px-2.5 py-1 rounded-md font-bold text-[10px] ${isOver ? "bg-rose-950 text-rose-400 border border-rose-900" : "bg-emerald-950 text-emerald-400 border border-emerald-900"}`}>
-                          {isOver ? "OVER" : "TIDAK OVER"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+    return (
+      <tr key={subCat} className="hover:bg-slate-950/50 transition">
+        <td className="p-3 text-slate-200 font-bold">{subCat}</td>
+        <td className="p-3 text-right font-mono text-slate-300">
+          {formatRupiah(targetVal)}
+        </td>
+        <td className="p-3 text-right font-mono text-rose-400 font-bold">
+          {formatRupiah(actualVal)}
+        </td>
+        <td className="p-3 text-center">
+          <span
+            className={`px-2.5 py-1 rounded-md font-bold text-[10px] ${
+              isOver
+                ? "bg-rose-950 text-rose-400 border border-rose-900"
+                : "bg-emerald-950 text-emerald-400 border border-emerald-900"
+            }`}
+          >
+            {isOver ? "OVER" : "TIDAK OVER"}
+          </span>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
             </table>
           </div>
         </section>
