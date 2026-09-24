@@ -217,12 +217,25 @@ const handleDeleteSubCategory = () => {
       const currentOptions = categoryOptions[type] || [];
       const capitalizedCategory = category.toUpperCase();
       
-      if (!currentOptions.includes(capitalizedCategory)) {
-        setDynamicSubCategories((prev) => ({
-          ...prev,
-          [type]: [...(prev[type] || []), capitalizedCategory],
-        }));
+if (!currentOptions.includes(capitalizedCategory)) {
+      // 1. Simpan sub-kategori baru ke tabel sub_categories Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.from("sub_categories").insert([
+          {
+            user_id: session.user.id,
+            type: type,
+            name: capitalizedCategory,
+          }
+        ]);
       }
+
+      // 2. Update state lokal
+      setDynamicSubCategories((prev) => ({
+        ...prev,
+        [type]: [...(prev[type] || []), capitalizedCategory],
+      }));
+    }
     }
 
 const newTxPayload = {
