@@ -365,6 +365,27 @@ const exportToExcel = () => {
           </div>
         </div>
 
+<div className={`mb-6 p-6 rounded-2xl border ${health.bg} shadow-xl backdrop-blur-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4`}>
+  <div>
+    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Financial Health Score</div>
+    <div className={`text-xl font-extrabold mt-1 ${health.color}`}>{health.label}</div>
+    <p className="text-xs text-gray-400 mt-1">Berdasarkan rasio tabungan terhadap total pemasukan bulan berjalan.</p>
+  </div>
+  <div className="flex items-center gap-6 bg-gray-900/60 px-5 py-3 rounded-xl border border-gray-800">
+    <div>
+      <div className="text-xs text-gray-400">Rasio Tabungan</div>
+      <div className="text-lg font-bold text-white">{savingsRate.toFixed(1)}%</div>
+    </div>
+    <div className="h-8 w-[1px] bg-gray-800"></div>
+    <div>
+      <div className="text-xs text-gray-400">Sisa Saldo</div>
+      <div className={`text-lg font-bold ${sisaSaldo >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        Rp {sisaSaldo.toLocaleString('id-ID')}
+      </div>
+    </div>
+  </div>
+</div>
+
         {/* Baris 1: Top 3, Grafik, Rekap Pengeluaran */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
@@ -486,27 +507,7 @@ const exportToExcel = () => {
 
         </div>
 
-        {/* Baris 2: KARTU FINANCIAL HEALTH SCORE, Pemasukan & Aset */}
-<div className={`mb-6 p-6 rounded-2xl border ${health.bg} shadow-xl backdrop-blur-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4`}>
-  <div>
-    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Financial Health Score</div>
-    <div className={`text-xl font-extrabold mt-1 ${health.color}`}>{health.label}</div>
-    <p className="text-xs text-gray-400 mt-1">Berdasarkan rasio tabungan terhadap total pemasukan bulan berjalan.</p>
-  </div>
-  <div className="flex items-center gap-6 bg-gray-900/60 px-5 py-3 rounded-xl border border-gray-800">
-    <div>
-      <div className="text-xs text-gray-400">Rasio Tabungan</div>
-      <div className="text-lg font-bold text-white">{savingsRate.toFixed(1)}%</div>
-    </div>
-    <div className="h-8 w-[1px] bg-gray-800"></div>
-    <div>
-      <div className="text-xs text-gray-400">Sisa Saldo</div>
-      <div className={`text-lg font-bold ${sisaSaldo >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-        Rp {sisaSaldo.toLocaleString('id-ID')}
-      </div>
-    </div>
-  </div>
-</div>
+        {/* Baris 2 Pemasukan & Aset */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           
           <div className="bg-slate-900 border border-slate-800 p-5 sm:p-6 rounded-2xl shadow-lg flex flex-col justify-between">
