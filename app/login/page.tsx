@@ -12,16 +12,18 @@ export default function LoginPage() {
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" } | null>(null);
   const router = useRouter();
 
-  const handleForgotPassword = async () => {
-  // Mengambil nilai email dari state/input yang sedang diketik pengguna
-  const emailInput = (document.getElementById("email") as HTMLInputElement)?.value;
-  
-  if (!emailInput) {
+const handleForgotPassword = async () => {
+  const cleanUserId = userId.trim().toLowerCase();
+  if (!cleanUserId) {
     alert("Silakan masukkan email Anda terlebih dahulu pada kolom email.");
     return;
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(emailInput, {
+  const emailToUse = cleanUserId === "ragaraisuli"
+    ? "ragaraisuli@gmail.com"
+    : `${cleanUserId}@gmail.com`;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(emailToUse, {
     redirectTo: `${window.location.origin}/dashboard`,
   });
 
