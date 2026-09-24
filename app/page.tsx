@@ -35,6 +35,7 @@ export default function Home() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importStatus, setImportStatus] = useState("");
   const [isMounted, setIsMounted] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 // State tambahan untuk menampung sub kategori tambahan yang diinput pengguna secara dinamis
   const [dynamicSubCategories, setDynamicSubCategories] = useState<Record<string, string[]>>({
     Pemasukan: [],
@@ -46,22 +47,26 @@ export default function Home() {
     setIsMounted(true);
   }, []);
 
-  // Cek Sesi Login (Proteksi Halaman)
-  useEffect(() => {
-    const checkUserSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/login");
-      } else {
-        setIsCheckingAuth(false);
-      }
-    };
+// Cek Sesi Login & Ambil User ID
+useEffect(() => {
+  const checkUserSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.push("/login");
+    } else {
+      setUserId(session.user.id); // <-- Simpan user_id ke state di sini
+      setIsCheckingAuth(false);
+    }
+  };
 
-    checkUserSession();
+  checkUserSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         router.push("/login");
+      } else {
+        setUserId(session.user.id);
+        setIsCheckingAuth(false);
       }
     });
 
@@ -679,3 +684,4 @@ const newTxPayload = {
     </main>
   );
 }
+
