@@ -77,59 +77,61 @@ useEffect(() => {
 
   // Ambil data transaksi dari Supabase
   useEffect(() => {
+    if (isCheckingAuth) return;
+
     const fetchTransactions = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setTransactions([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("transactions")
         .select("*")
+        .eq("user_id", session.user.id)
         .order("date", { ascending: false });
 
       if (error) {
         console.error("Gagal memuat transaksi dari Supabase:", error.message);
-      } else if (data) {
-        const mappedData: Transaction[] = data.map((item: any) => ({
-          id: item.id.toString(),
-          date: item.date,
-          type: item.type,
-          category: item.category,
-          subCategory: item.sub_category || item.subCategory || "-",
-          amount: Number(item.amount),
-        }));
-        setTransactions(mappedData);
-        // Ekstrak sub kategori unik dari data Supabase berdasarkan tipenya
-// Ekstrak kategori unik dari data Supabase berdasarkan tipenya
-        const extracted: Record<string, Set<string>> = {
-          Pemasukan: new Set(),
-          Pengeluaran: new Set(),
-          Aset: new Set(),
-        };
-
-        mappedData.forEach((t) => {
-          const tType = t.type;
-          const cat = t.category; // Ambil dari kolom kategori utama
-          if (tType && cat && cat !== "-") {
-            const matchedKey = Object.keys(DEFAULT_CATEGORY_OPTIONS).find(
-              (k) => k.toLowerCase() === tType.toLowerCase()
-            );
-            if (matchedKey) {
-              extracted[matchedKey].add(cat.toUpperCase());
-            }
-          }
-        });
-
-        setDynamicSubCategories({
-          Pemasukan: Array.from(extracted.Pemasukan),
-          Pengeluaran: Array.from(extracted.Pengeluaran),
-          Aset: Array.from(extracted.Aset),
-        });
+        return;
       }
+
+      const mappedData: Transaction[] = (data || []).map((item: any) => ({
+        id: item.id.toString(),
+        date: item.date,
+        type: item.type,
+        category: item.category,
+        subCategory: item.sub_category || item.subCategory || "-",
+        amount: Number(item.amount),
+      }));
+      setTransactions(mappedData);
+
+      const extracted: Record<string, Set<string>> = {
+        Pemasukan: new Set(),
+        Pengeluaran: new Set(),
+        Aset: new Set(),
+      };
+
+      mappedData.forEach((t) => {
+        if (t.type && t.category && t.category !== "-") {
+          const matchedKey = Object.keys(DEFAULT_CATEGORY_OPTIONS).find(
+            (key) => key.toLowerCase() === t.type.toLowerCase()
+          );
+          if (matchedKey) extracted[matchedKey].add(t.category.toUpperCase());
+        }
+      });
+
+      setDynamicSubCategories({
+        Pemasukan: Array.from(extracted.Pemasukan),
+        Pengeluaran: Array.from(extracted.Pengeluaran),
+        Aset: Array.from(extracted.Aset),
+      });
     };
 
-    if (!isCheckingAuth) {
-      fetchTransactions();
-    }
-
-    const today = new Date().toISOString().split("T")[0];
-    setDate(today);
+    fetchTransactions();
+    setDate(new Date().toISOString().split("T")[0]);
   }, [isCheckingAuth]);
 
   // Gabungkan pilihan default dengan sub kategori yang tersimpan di Supabase
