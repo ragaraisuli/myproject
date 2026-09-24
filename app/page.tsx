@@ -220,9 +220,9 @@ const handleDeleteSubCategory = () => {
 
 const newTxPayload = {
   date: date,
-  type: type,          // Contoh: "Pengeluaran"
-  category: type,      // Kategori utama (Pengeluaran / Pemasukan)
-  sub_category: category, // Nama sub-kategori yang diinput user (misal: "AIR", "LISTRIK")
+  type: type,                 // Contoh: "Pengeluaran"
+  category: category,         // Kategori utama (misal: "GAS", "LISTRIK", dll)
+  sub_category: note,         // Keterangan tambahan bebas (opsional)
   amount: parsedAmount,
 };
 
