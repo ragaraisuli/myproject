@@ -246,17 +246,14 @@ const handleDeleteSubCategory = () => {
     setIsCustomSubCategory(false);
   };
 
-  const handleManualSubmit = async (e: React.FormEvent) => {
+const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !date) return;
 
-    // Tambahkan juga ke dynamicSubCategories jika belum ada
-      if (category && !categoryOptions[type]?.includes(category)) {
-        setDynamicSubCategories({
-          ...dynamicSubCategories,
-          [type]: [...(dynamicSubCategories[type] || []), category],
-        });
-      }
+    if (!currentUserId) {
+      alert("Sesi pengguna tidak ditemukan. Silakan login ulang.");
+      return;
+    }
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount)) return;
@@ -266,6 +263,15 @@ const handleDeleteSubCategory = () => {
       const capitalizedCategory = category.toUpperCase();
       
       if (!currentOptions.includes(capitalizedCategory)) {
+        // Simpan juga ke tabel sub_categories di Supabase agar persisten
+        await supabase.from("sub_categories").insert([
+          {
+            user_id: currentUserId,
+            type: type,
+            name: capitalizedCategory,
+          },
+        ]);
+
         setDynamicSubCategories((prev) => ({
           ...prev,
           [type]: [...(prev[type] || []), capitalizedCategory],
@@ -273,13 +279,14 @@ const handleDeleteSubCategory = () => {
       }
     }
 
-const newTxPayload = {
-  date: date,
-  type: type,                 // Contoh: "Pengeluaran"
-  category: category,         // Kategori utama (misal: "GAS", "LISTRIK", dll)
-  sub_category: note,         // Keterangan tambahan bebas (opsional)
-  amount: parsedAmount,
-};
+    const newTxPayload = {
+      user_id: currentUserId, // <-- Ditambahkan agar tersimpan dengan benar sesuai akun yang login
+      date: date,
+      type: type,
+      category: category,
+      sub_category: note,
+      amount: parsedAmount,
+    };
 
     const { data, error } = await supabase
       .from("transactions")
