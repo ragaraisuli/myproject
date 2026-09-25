@@ -16,7 +16,7 @@ type Transaction = {
 
 const DEFAULT_CATEGORY_OPTIONS: Record<string, string[]> = {
   Pemasukan: ["Gaji Suami", "Bonus", "Investasi", "Lainnya"],
-  Pengeluaran: ["MAKAN DILUAR", "LISTRIK", "BENSIN MOTOR", "BERBAGI", "BELANJA BULANAN"],
+  Pengeluaran: [],
   Aset: ["Tabungan Bank", "Emas", "Reksa Dana", "Kas Tunai"],
 };
 
