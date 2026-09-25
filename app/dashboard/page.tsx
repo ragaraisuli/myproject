@@ -27,25 +27,33 @@ export default function DashboardPage() {
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>({ "Pengeluaran": [] });
 
-// Load data aman langsung dari Supabase
+  // Load data aman langsung dari Supabase
   useEffect(() => {
     const fetchDashboardData = async () => {
       const currentYearMonth = new Date().toISOString().substring(0, 7);
       try {
-        const savedCategory = localStorage.getItem("categoryOptions");
-        if (savedCategory) {
-          setCategoryOptions(JSON.parse(savedCategory));
-        }
-// 1. Ambil sesi pengguna yang sedang aktif
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+        // 1. Ambil sesi pengguna yang sedang aktif
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
 
-    // 2. Mengambil data transaksi dari database Supabase dengan filter user_id
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", session.user.id) // <-- Tambahkan filter isolasi ini!
-      .order("date", { ascending: false });
+        // 2. Ambil master data sub-kategori khusus "Pengeluaran" dari Supabase
+        const { data: subCatData, error: subCatError } = await supabase
+          .from("sub_categories")
+          .select("name")
+          .eq("user_id", session.user.id)
+          .ilike("type", "pengeluaran");
+
+        if (!subCatError && subCatData) {
+          const subCategoryList = subCatData.map((item: any) => item.name);
+          setCategoryOptions({ Pengeluaran: subCategoryList });
+        }
+
+        // 3. Mengambil data transaksi dari database Supabase dengan filter user_id
+        const { data, error } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("date", { ascending: false });
 
         if (error) {
           console.error("Gagal memuat transaksi dari Supabase:", error.message);
@@ -94,6 +102,7 @@ export default function DashboardPage() {
 
     fetchDashboardData();
   }, []);
+
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -132,7 +141,7 @@ export default function DashboardPage() {
 
   const sisaSaldo = totalPemasukan - totalPengeluaran;
   const isDefisit = sisaSaldo < 0;
-// Logika Tambahan untuk Financial Health Score
+
   const savingsRate = totalPemasukan > 0 ? (sisaSaldo / totalPemasukan) * 100 : 0;
 
   const getHealthStatus = () => {
@@ -144,6 +153,7 @@ export default function DashboardPage() {
   };
 
   const health = getHealthStatus();
+
   const getPreviousAccumulatedBalance = () => {
     if (!selectedPeriod) return 0;
     const pastTransactions = transactions.filter((t) => {
@@ -204,13 +214,12 @@ export default function DashboardPage() {
       assetSummaryMap[sub] = (assetSummaryMap[sub] || 0) + (t.amount || 0);
     });
 
-const exportToExcel = () => {
+  const exportToExcel = () => {
     if (periodTransactions.length === 0) {
       alert("Tidak ada data transaksi pada periode ini untuk diexport.");
       return;
     }
 
-    // 1. Siapkan data dengan format kolom yang rapi
     const exportData = periodTransactions.map((t, index) => ({
       "No": index + 1,
       "ID": t.id,
@@ -221,55 +230,52 @@ const exportToExcel = () => {
       "Nominal": t.amount,
     }));
 
-    // 2. Buat worksheet dan workbook menggunakan xlsx
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Daftar Transaksi");
 
-    // 3. Atur lebar kolom agar proporsional
     worksheet["!cols"] = [
-      { wch: 5 },  // No
-      { wch: 8 },  // ID
-      { wch: 12 }, // Tanggal
-      { wch: 15 }, // Tipe
-      { wch: 20 }, // Kategori Utama
-      { wch: 20 }, // Keterangan / Sub
-      { wch: 15 }, // Nominal
+      { wch: 5 },
+      { wch: 8 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 15 },
     ];
 
-    // 4. Download file berformat .xlsx resmi
     XLSX.writeFile(workbook, `Laporan_Keuangan_${selectedPeriod}.xlsx`);
   };
 
-    function getTargetForSubCategory(subCat: string, selectedPeriod: string) {
-      if (!subCat || !/^\d{4}-\d{2}$/.test(selectedPeriod)) return 0;
+  function getTargetForSubCategory(subCat: string, selectedPeriod: string) {
+    if (!subCat || !/^\d{4}-\d{2}$/.test(selectedPeriod)) return 0;
 
-      const [year, month] = selectedPeriod.split("-").map(Number);
-      const category = subCat.trim().toUpperCase();
-      const totals = [0, 0, 0];
+    const [year, month] = selectedPeriod.split("-").map(Number);
+    const category = subCat.trim().toUpperCase();
+    const totals = [0, 0, 0];
 
-      transactions.forEach((t) => {
-        if (
-          !t.date ||
-          !t.type?.toLowerCase().includes("pengeluaran") ||
-          getSubCat(t).trim().toUpperCase() !== category
-        ) {
-          return;
-        }
+    transactions.forEach((t) => {
+      if (
+        !t.date ||
+        !t.type?.toLowerCase().includes("pengeluaran") ||
+        getSubCat(t).trim().toUpperCase() !== category
+      ) {
+        return;
+      }
 
-        const [transactionYear, transactionMonth] = t.date
-          .substring(0, 7)
-          .split("-")
-          .map(Number);
-        const monthsAgo = (year - transactionYear) * 12 + (month - transactionMonth);
+      const [transactionYear, transactionMonth] = t.date
+        .substring(0, 7)
+        .split("-")
+        .map(Number);
+      const monthsAgo = (year - transactionYear) * 12 + (month - transactionMonth);
 
-        if (monthsAgo >= 1 && monthsAgo <= 3) {
-          totals[monthsAgo - 1] += t.amount || 0;
-        }
-      });
+      if (monthsAgo >= 1 && monthsAgo <= 3) {
+        totals[monthsAgo - 1] += t.amount || 0;
+      }
+    });
 
-      return totals.reduce((sum, amount) => sum + amount, 0) / 3;
-    }
+    return totals.reduce((sum, amount) => sum + amount, 0) / 3;
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 selection:bg-slate-800">
@@ -369,26 +375,26 @@ const exportToExcel = () => {
           </div>
         </div>
 
-<div className={`mb-6 p-6 rounded-2xl border ${health.bg} shadow-xl backdrop-blur-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4`}>
-  <div>
-    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Financial Health Score</div>
-    <div className={`text-xl font-extrabold mt-1 ${health.color}`}>{health.label}</div>
-    <p className="text-xs text-gray-400 mt-1">Berdasarkan rasio tabungan terhadap total pemasukan bulan berjalan.</p>
-  </div>
-  <div className="flex items-center gap-6 bg-gray-900/60 px-5 py-3 rounded-xl border border-gray-800">
-    <div>
-      <div className="text-xs text-gray-400">Rasio Tabungan</div>
-      <div className="text-lg font-bold text-white">{savingsRate.toFixed(1)}%</div>
-    </div>
-    <div className="h-8 w-[1px] bg-gray-800"></div>
-    <div>
-      <div className="text-xs text-gray-400">Sisa Saldo</div>
-      <div className={`text-lg font-bold ${sisaSaldo >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-        Rp {sisaSaldo.toLocaleString('id-ID')}
-      </div>
-    </div>
-  </div>
-</div>
+        <div className={`mb-6 p-6 rounded-2xl border ${health.bg} shadow-xl backdrop-blur-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4`}>
+          <div>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Financial Health Score</div>
+            <div className={`text-xl font-extrabold mt-1 ${health.color}`}>{health.label}</div>
+            <p className="text-xs text-gray-400 mt-1">Berdasarkan rasio tabungan terhadap total pemasukan bulan berjalan.</p>
+          </div>
+          <div className="flex items-center gap-6 bg-gray-900/60 px-5 py-3 rounded-xl border border-gray-800">
+            <div>
+              <div className="text-xs text-gray-400">Rasio Tabungan</div>
+              <div className="text-lg font-bold text-white">{savingsRate.toFixed(1)}%</div>
+            </div>
+            <div className="h-8 w-[1px] bg-gray-800"></div>
+            <div>
+              <div className="text-xs text-gray-400">Sisa Saldo</div>
+              <div className={`text-lg font-bold ${sisaSaldo >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                Rp {sisaSaldo.toLocaleString('id-ID')}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Baris 1: Top 3, Grafik, Rekap Pengeluaran */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -575,6 +581,7 @@ const exportToExcel = () => {
           </div>
 
         </div>
+
         {/* PROGRESS BUDGET TABLE */}
         <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
           <div>
@@ -582,7 +589,7 @@ const exportToExcel = () => {
             <p className="text-xs text-slate-400">Target dihitung dari rata-rata pengeluaran 3 bulan sebelumnya berdasarkan master data resmi.</p>
           </div>
           
-<div className="overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-950 text-slate-400 border-b border-slate-800">
@@ -592,39 +599,39 @@ const exportToExcel = () => {
                   <th className="p-3 font-semibold text-center">STATUS</th>
                 </tr>
               </thead>
-<tbody className="divide-y divide-slate-800/60">
-  {Array.from(
-    new Set([
-      ...(categoryOptions["Pengeluaran"] || []),
-      ...periodTransactions
-        .filter((t) => t.type?.toLowerCase().includes("pengeluaran"))
-        .map((t) => t.category)
-        .filter(Boolean)
-    ])
-  ).map((subCat: string) => {
-    const key = subCat.toUpperCase();
+              <tbody className="divide-y divide-slate-800/60">
+                {Array.from(
+                  new Set([
+                    ...(categoryOptions["Pengeluaran"] || []),
+                    ...periodTransactions
+                      .filter((t) => t.type?.toLowerCase().includes("pengeluaran"))
+                      .map((t) => t.category)
+                      .filter(Boolean)
+                  ])
+                ).map((subCat: string) => {
+                  const key = subCat.toUpperCase();
 
-    const targetVal = getTargetForSubCategory(subCat, selectedPeriod);
-    const actualVal = periodTransactions
-      .filter((t) => t.type?.toLowerCase().includes("pengeluaran") && getSubCat(t).toUpperCase() === key)
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+                  const targetVal = getTargetForSubCategory(subCat, selectedPeriod);
+                  const actualVal = periodTransactions
+                    .filter((t) => t.type?.toLowerCase().includes("pengeluaran") && getSubCat(t).toUpperCase() === key)
+                    .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    const isOver = actualVal > targetVal && targetVal > 0;
+                  const isOver = actualVal > targetVal && targetVal > 0;
 
-    return (
-      <tr key={subCat} className="hover:bg-slate-950/50 transition">
-        <td className="p-3 text-slate-200 font-bold">{subCat}</td>
-        <td className="p-3 text-right font-mono text-slate-300">{formatRupiah(targetVal)}</td>
-        <td className="p-3 text-right font-mono text-rose-400 font-bold">{formatRupiah(actualVal)}</td>
-        <td className="p-3 text-center">
-          <span className={`px-2.5 py-1 rounded-md font-bold text-[10px] ${isOver ? "bg-rose-950 text-rose-400 border border-rose-900" : "bg-emerald-950 text-emerald-400 border border-emerald-900"}`}>
-            {isOver ? "OVER" : "TIDAK OVER"}
-          </span>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+                  return (
+                    <tr key={subCat} className="hover:bg-slate-950/50 transition">
+                      <td className="p-3 text-slate-200 font-bold">{subCat}</td>
+                      <td className="p-3 text-right font-mono text-slate-300">{formatRupiah(targetVal)}</td>
+                      <td className="p-3 text-right font-mono text-rose-400 font-bold">{formatRupiah(actualVal)}</td>
+                      <td className="p-3 text-center">
+                        <span className={`px-2.5 py-1 rounded-md font-bold text-[10px] ${isOver ? "bg-rose-950 text-rose-400 border border-rose-900" : "bg-emerald-950 text-emerald-400 border border-emerald-900"}`}>
+                          {isOver ? "OVER" : "TIDAK OVER"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
             </table>
           </div>
         </section>
@@ -678,25 +685,21 @@ const exportToExcel = () => {
                     })
                     .map((t) => (
                       <tr key={t.id} className="hover:bg-slate-950/50 transition">
-                        <td className="p-3 text-slate-300 whitespace-nowrap">{t.date}</td>
-                        <td className="p-3 whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            t.type?.toLowerCase().includes("pemasukan") ? "bg-emerald-950 text-emerald-400 border border-emerald-900" :
-                            t.type?.toLowerCase().includes("aset") ? "bg-blue-950 text-blue-400 border border-blue-900" :
-                            "bg-rose-950 text-rose-400 border border-rose-900"
-                          }`}>
+                        <td className="p-3 text-slate-300">{t.date}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${t.type?.toLowerCase().includes("pemasukan") ? "bg-emerald-950 text-emerald-400 border border-emerald-900" : t.type?.toLowerCase().includes("pengeluaran") ? "bg-rose-950 text-rose-400 border border-rose-900" : "bg-blue-950 text-blue-400 border border-blue-900"}`}>
                             {t.type}
                           </span>
                         </td>
-                        <td className="p-3 font-bold text-slate-200">{getSubCat(t) || "-"}</td>
+                        <td className="p-3 text-slate-200 font-bold">{getSubCat(t)}</td>
                         <td className="p-3 text-slate-400">{getMainCat(t)}</td>
-                        <td className="p-3 text-right font-mono font-bold text-slate-100 whitespace-nowrap">{formatRupiah(t.amount)}</td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-200">{formatRupiah(t.amount)}</td>
                       </tr>
                     ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-slate-500">
-                      Tidak ada transaksi tercatat pada periode ini.
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                      Tidak ada transaksi pada periode ini.
                     </td>
                   </tr>
                 )}
