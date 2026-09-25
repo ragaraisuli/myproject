@@ -561,29 +561,30 @@ const newTxPayload = {
                <label className="block text-slate-400 mb-1">3. Sub Kategori</label>
                {!isCustomSubCategory ? (
                  isMounted ? (
-                   <select
-                     value={category}
-                     onChange={(e) => {
-                       const val = e.target.value;
-                       if (val === "__ADD_NEW__") {
-                         setIsAddSubModalOpen(true);
-                       } else if (val === "__DELETE_SUBCAT__") {
-                         handleDeleteSubCategory();
-                       } else {
-                         setCategory(val);
-                       }
-                     }}
-                     className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800"
-                   >
-                     <option value="" disabled>Pilih Sub Kategori</option>
-                     {Array.isArray(categoryOptions[type]) && categoryOptions[type].map((subCat: string) => (
-                       <option key={subCat} value={subCat}>
-                         {subCat}
-                       </option>
-                     ))}
-                     <option value="__ADD_NEW__" className="text-emerald-400 font-semibold">+ Tambah Sub Kategori Lain...</option>
-                     <option value="__DELETE_SUBCAT__" className="text-red-400 font-semibold">- Hapus Sub Kategori Ini...</option>
-                   </select>
+<select
+  value={category}
+  onChange={(e) => {
+    const val = e.target.value;
+    if (val === "__ADD_NEW__") {
+      setIsCustomSubCategory(true); // REVISI: Mengubah state ini agar membuka input teks kustom
+      setCategory("");
+    } else if (val === "__DELETE_SUBCAT__") {
+      handleDeleteSubCategory();
+    } else {
+      setCategory(val);
+    }
+  }}
+  className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800"
+>
+  <option value="" disabled>Pilih Sub Kategori</option>
+  {Array.isArray(categoryOptions[type]) && categoryOptions[type].map((subCat: string) => (
+    <option key={subCat} value={subCat}>
+      {subCat}
+    </option>
+  ))}
+  <option value="__ADD_NEW__" className="text-emerald-400 font-semibold">+ Tambah Sub Kategori Lain...</option>
+  <option value="__DELETE_SUBCAT__" className="text-red-400 font-semibold">- Hapus Sub Kategori Ini...</option>
+</select>
                  ) : (
                    <div className="w-full bg-slate-950 text-slate-500 px-3 py-2.5 rounded-xl border border-slate-800">
                      Memuat pilihan...
