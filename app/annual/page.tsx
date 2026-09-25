@@ -159,7 +159,7 @@ export default function AnnualReportPage() {
     }).format(val);
   };
 
-  const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) => {
+const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) => {
     const targetMonth = monthIndex + 1;
     return transactions
       .filter((t) => {
@@ -171,31 +171,13 @@ export default function AnnualReportPage() {
         const d = new Date(t.date);
         const isYearMonthMatch = !isNaN(d.getTime()) && d.getFullYear().toString() === selectedYear && (d.getMonth() + 1) === targetMonth;
         if (!isYearMonthMatch) return false;
-    const itemSubCat = (t.subCategory || "").trim().toLowerCase();
-    const itemMainCat = (t.category || "").trim().toLowerCase();
-    const target = (subCat || "").trim().toLowerCase();
 
-    if (target === "gaji suami") {
-      return itemSubCat === "gaji suami" || itemMainCat === "gaji suami" || itemSubCat === "gaji_suami" || itemMainCat === "gaji_suami";
-    } else if (target === "gaji istri") {
-      return itemSubCat === "gaji istri" || itemMainCat === "gaji istri" || itemSubCat === "gaji_istri" || itemMainCat === "gaji_istri";
-    } else {
-      return itemSubCat !== "gaji suami" && itemMainCat !== "gaji suami" && itemSubCat !== "gaji istri" && itemMainCat !== "gaji istri" && itemSubCat !== "gaji_suami" && itemMainCat !== "gaji_suami" && itemSubCat !== "gaji_istri" && itemMainCat !== "gaji_istri";
-    }
-  })
-      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
-  };
+        const itemSubCat = (t.subCategory || "").trim().toLowerCase();
+        const itemMainCat = (t.category || "").trim().toLowerCase();
+        const target = (subCat || "").trim().toLowerCase();
 
-  const getTotalIncomeByMonth = (monthIndex: number) => {
-    const targetMonth = monthIndex + 1;
-    return transactions
-      .filter((t) => {
-        if (!t.date || !t.type) return false;
-        const isIncome = t.type.trim().toLowerCase() === "pemasukan";
-        if (!isIncome) return false;
-
-        const d = new Date(t.date);
-        return !isNaN(d.getTime()) && d.getFullYear().toString() === selectedYear && (d.getMonth() + 1) === targetMonth;
+        // Cocokkan secara persis antara sub-kategori/kategori transaksi dengan target baris tabel
+        return itemSubCat === target || itemMainCat === target;
       })
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   };
@@ -228,6 +210,22 @@ export default function AnnualReportPage() {
 
         const d = new Date(t.date);
         return !isNaN(d.getTime()) && d.getFullYear().toString() === selectedYear && (d.getMonth() + 1) === targetMonth;
+      })
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  };
+
+  const getTotalIncomeByMonth = (monthIndex: number) => {
+    const targetMonth = monthIndex + 1;
+
+    return transactions
+      .filter((t) => {
+        if (!t.date || !t.type) return false;
+        if (t.type.trim().toLowerCase() !== "pemasukan") return false;
+
+        const date = new Date(t.date);
+        return !isNaN(date.getTime()) &&
+          date.getFullYear().toString() === selectedYear &&
+          date.getMonth() + 1 === targetMonth;
       })
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   };
