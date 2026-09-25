@@ -173,23 +173,46 @@ const handleSaveNewSubCategory = () => {
     setNewSubName("");
   };
 
-const handleDeleteSubCategory = () => {
+const handleDeleteSubCategory = async () => {
     if (!category) return;
-    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus sub kategori "${category}" dari kategori ${type}?`);
+    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus sub kategori "${category}"?`);
     if (!confirmDelete) return;
 
-    const currentOptions = categoryOptions[type] || [];
-    const updatedOptions = currentOptions.filter((item) => item !== category);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert("Sesi login tidak ditemukan.");
+        return;
+      }
 
-    // Perbarui state dynamicSubCategories agar sub kategori terhapus dari memori secara dinamis
-    setDynamicSubCategories((prev) => ({
-      ...prev,
-      [type]: (prev[type] || []).filter((item) => item !== category),
-    }));
+      // 1. Hapus data dari database Supabase berdasarkan user_id, nama, dan tipe
+      const { error } = await supabase
+        .from("sub_categories")
+        .delete()
+        .eq("user_id", session.user.id)
+        .eq("name", category)
+        .eq("type", type);
 
-    // Pilih otomatis opsi pertama yang tersisa
-    setCategory(updatedOptions[0] || "");
-  };
+      if (error) throw error;
+
+      // 2. Perbarui state lokal agar langsung hilang dari dropdown
+      const currentOptions = categoryOptions[type] || [];
+      const updatedOptions = currentOptions.filter((item: string) => item !== category);
+
+      setDynamicSubCategories((prev: any) => ({
+        ...prev,
+        [type]: (prev[type] || []).filter((item: string) => item !== category),
+      }));
+
+      // 3. Reset pilihan aktif ke opsi pertama yang tersisa
+      setCategory(updatedOptions[0] || "");
+      alert("Sub kategori berhasil dihapus dari database!");
+
+    } catch (err) {
+      console.error("Gagal menghapus sub kategori:", err);
+      alert("Terjadi kesalahan saat menghapus sub kategori.");
+    }
+  }
 
   const handleTypeChange = (newType: string) => {
     setType(newType);
