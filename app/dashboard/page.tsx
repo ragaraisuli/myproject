@@ -25,9 +25,8 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
-  const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>({ "Pengeluaran": [] });
 
-  // Load data aman langsung dari Supabase
+  // Load data transaksi langsung dari Supabase
   useEffect(() => {
     const fetchDashboardData = async () => {
       const currentYearMonth = new Date().toISOString().substring(0, 7);
@@ -36,19 +35,7 @@ export default function DashboardPage() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // 2. Ambil master data sub-kategori khusus "Pengeluaran" dari Supabase
-        const { data: subCatData, error: subCatError } = await supabase
-          .from("sub_categories")
-          .select("name")
-          .eq("user_id", session.user.id)
-          .ilike("type", "pengeluaran");
-
-        if (!subCatError && subCatData) {
-          const subCategoryList = subCatData.map((item: any) => item.name);
-          setCategoryOptions({ Pengeluaran: subCategoryList });
-        }
-
-        // 3. Mengambil data transaksi dari database Supabase dengan filter user_id
+        // 2. Mengambil data transaksi dari database Supabase dengan filter user_id
         const { data, error } = await supabase
           .from("transactions")
           .select("*")
@@ -586,7 +573,7 @@ export default function DashboardPage() {
         <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
           <div>
             <h2 className="text-base font-bold text-slate-200">PROGRESS BUDGET (TARGET VS AKTUAL)</h2>
-            <p className="text-xs text-slate-400">Target dihitung dari rata-rata pengeluaran 3 bulan sebelumnya berdasarkan master data resmi.</p>
+            <p className="text-xs text-slate-400">Target dihitung dari rata-rata pengeluaran 3 bulan sebelumnya berdasarkan data kategori transaksi.</p>
           </div>
           
           <div className="overflow-x-auto">
@@ -601,13 +588,11 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {Array.from(
-                  new Set([
-                    ...(categoryOptions["Pengeluaran"] || []),
-                    ...periodTransactions
-                      .filter((t) => t.type?.toLowerCase().includes("pengeluaran"))
+                  new Set(
+                    transactions
+                      .filter((t) => t.type?.toLowerCase().includes("pengeluaran") && t.category)
                       .map((t) => t.category)
-                      .filter(Boolean)
-                  ])
+                  )
                 ).map((subCat: string) => {
                   const key = subCat.toUpperCase();
 
