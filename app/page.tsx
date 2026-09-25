@@ -16,7 +16,7 @@ type Transaction = {
 
 const DEFAULT_CATEGORY_OPTIONS: Record<string, string[]> = {
   Pemasukan: ["Gaji Suami", "Bonus", "Investasi", "Lainnya"],
-  Pengeluaran: [],
+  Pengeluaran: ["MAKAN DILUAR", "LISTRIK", "BENSIN MOTOR", "BERBAGI", "BELANJA BULANAN"],
   Aset: ["Tabungan Bank", "Emas", "Reksa Dana", "Kas Tunai"],
 };
 
@@ -36,7 +36,8 @@ export default function Home() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importStatus, setImportStatus] = useState("");
   const [isMounted, setIsMounted] = useState(false);
-// State tambahan untuk menampung sub kategori tambahan yang diinput pengguna secara dinamis
+
+  // State untuk menampung sub kategori tambahan per user dari tabel sub_categories
   const [dynamicSubCategories, setDynamicSubCategories] = useState<Record<string, string[]>>({
     Pemasukan: [],
     Pengeluaran: [],
@@ -47,8 +48,8 @@ export default function Home() {
     setIsMounted(true);
   }, []);
 
-  // Cek Sesi Login (Proteksi Halaman)
-useEffect(() => {
+  // Cek Sesi Login & Ambil User ID
+  useEffect(() => {
     const checkUserSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -59,7 +60,7 @@ useEffect(() => {
       }
     };
 
-checkUserSession();
+    checkUserSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
@@ -74,18 +75,18 @@ checkUserSession();
     };
   }, [router]);
 
-  // 3. Ambil sub kategori khusus milik user yang sedang login dari tabel sub_categories
+  // Ambil Sub Kategori khusus milik user yang sedang login dari tabel sub_categories Supabase
   useEffect(() => {
-    const fetchSubCategoriesFromSupabase = async () => {
+    const fetchSubCategories = async () => {
       if (!currentUserId) return;
 
       const { data, error } = await supabase
         .from("sub_categories")
         .select("*")
-        .eq("user_id", currentUserId); // Filter berdasarkan user yang login agar tidak tercampur akun lain
+        .eq("user_id", currentUserId);
 
       if (error) {
-        console.error("Gagal memuat sub kategori:", error.message);
+        console.error("Gagal memuat sub kategori dari Supabase:", error.message);
       } else if (data) {
         const extracted: Record<string, string[]> = {
           Pemasukan: [],
@@ -94,7 +95,7 @@ checkUserSession();
         };
 
         data.forEach((item: any) => {
-          const tType = item.type; // Pastikan kolom tipe data sesuai (Pemasukan/Pengeluaran/Aset)
+          const tType = item.type;
           if (extracted[tType] && !extracted[tType].includes(item.name)) {
             extracted[tType].push(item.name);
           }
@@ -105,16 +106,19 @@ checkUserSession();
     };
 
     if (!isCheckingAuth && currentUserId) {
-      fetchSubCategoriesFromSupabase();
+      fetchSubCategories();
     }
   }, [isCheckingAuth, currentUserId]);
 
-  // Ambil data transaksi dari Supabase
+  // Ambil data transaksi khusus milik user yang sedang login dari Supabase
   useEffect(() => {
     const fetchTransactions = async () => {
+      if (!currentUserId) return;
+
       const { data, error } = await supabase
         .from("transactions")
         .select("*")
+        .eq("user_id", currentUserId)
         .order("date", { ascending: false });
 
       if (error) {
@@ -129,44 +133,18 @@ checkUserSession();
           amount: Number(item.amount),
         }));
         setTransactions(mappedData);
-        // Ekstrak sub kategori unik dari data Supabase berdasarkan tipenya
-// Ekstrak kategori unik dari data Supabase berdasarkan tipenya
-        const extracted: Record<string, Set<string>> = {
-          Pemasukan: new Set(),
-          Pengeluaran: new Set(),
-          Aset: new Set(),
-        };
-
-        mappedData.forEach((t) => {
-          const tType = t.type;
-          const cat = t.category; // Ambil dari kolom kategori utama
-          if (tType && cat && cat !== "-") {
-            const matchedKey = Object.keys(DEFAULT_CATEGORY_OPTIONS).find(
-              (k) => k.toLowerCase() === tType.toLowerCase()
-            );
-            if (matchedKey) {
-              extracted[matchedKey].add(cat.toUpperCase());
-            }
-          }
-        });
-
-        setDynamicSubCategories({
-          Pemasukan: Array.from(extracted.Pemasukan),
-          Pengeluaran: Array.from(extracted.Pengeluaran),
-          Aset: Array.from(extracted.Aset),
-        });
       }
     };
 
-    if (!isCheckingAuth) {
+    if (!isCheckingAuth && currentUserId) {
       fetchTransactions();
     }
 
     const today = new Date().toISOString().split("T")[0];
     setDate(today);
-  }, [isCheckingAuth]);
+  }, [isCheckingAuth, currentUserId]);
 
-  // Gabungkan pilihan default dengan sub kategori yang tersimpan di Supabase
+  // Gabungkan pilihan default dengan sub kategori dari Supabase
   const categoryOptions: Record<string, string[]> = {
     Pemasukan: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pemasukan, ...(dynamicSubCategories.Pemasukan || [])])),
     Pengeluaran: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pengeluaran, ...(dynamicSubCategories.Pengeluaran || [])])),
@@ -178,7 +156,8 @@ checkUserSession();
     router.push("/login");
   };
 
-const handleSaveNewSubCategory = async () => {
+  // Simpan sub kategori baru ke tabel sub_categories Supabase
+  const handleSaveNewSubCategory = async () => {
     const trimmedName = newSubName.trim();
     if (!trimmedName) {
       alert("Nama sub kategori tidak boleh kosong!");
@@ -197,7 +176,8 @@ const handleSaveNewSubCategory = async () => {
       alert("Sesi pengguna tidak ditemukan. Silakan login ulang.");
       return;
     }
-const { error } = await supabase.from("sub_categories").insert([
+
+    const { error } = await supabase.from("sub_categories").insert([
       {
         user_id: currentUserId,
         type: type,
@@ -210,8 +190,7 @@ const { error } = await supabase.from("sub_categories").insert([
       return;
     }
 
-    // Perbarui state dynamicSubCategories agar sub kategori baru langsung tersimpan di memori komponen
-setDynamicSubCategories((prev) => ({
+    setDynamicSubCategories((prev) => ({
       ...prev,
       [type]: [...(prev[type] || []), capitalizedName],
     }));
@@ -221,7 +200,7 @@ setDynamicSubCategories((prev) => ({
     setNewSubName("");
   };
 
-const handleDeleteSubCategory = () => {
+  const handleDeleteSubCategory = () => {
     if (!category) return;
     const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus sub kategori "${category}" dari kategori ${type}?`);
     if (!confirmDelete) return;
@@ -229,13 +208,11 @@ const handleDeleteSubCategory = () => {
     const currentOptions = categoryOptions[type] || [];
     const updatedOptions = currentOptions.filter((item) => item !== category);
 
-    // Perbarui state dynamicSubCategories agar sub kategori terhapus dari memori secara dinamis
     setDynamicSubCategories((prev) => ({
       ...prev,
       [type]: (prev[type] || []).filter((item) => item !== category),
     }));
 
-    // Pilih otomatis opsi pertama yang tersisa
     setCategory(updatedOptions[0] || "");
   };
 
@@ -246,7 +223,7 @@ const handleDeleteSubCategory = () => {
     setIsCustomSubCategory(false);
   };
 
-const handleManualSubmit = async (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !date) return;
 
@@ -263,7 +240,6 @@ const handleManualSubmit = async (e: React.FormEvent) => {
       const capitalizedCategory = category.toUpperCase();
       
       if (!currentOptions.includes(capitalizedCategory)) {
-        // Simpan juga ke tabel sub_categories di Supabase agar persisten
         await supabase.from("sub_categories").insert([
           {
             user_id: currentUserId,
@@ -280,7 +256,7 @@ const handleManualSubmit = async (e: React.FormEvent) => {
     }
 
     const newTxPayload = {
-      user_id: currentUserId, // <-- Ditambahkan agar tersimpan dengan benar sesuai akun yang login
+      user_id: currentUserId,
       date: date,
       type: type,
       category: category,
@@ -330,7 +306,7 @@ const handleManualSubmit = async (e: React.FormEvent) => {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !currentUserId) return;
 
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -365,6 +341,7 @@ const handleManualSubmit = async (e: React.FormEvent) => {
 
             if (formattedDate && !isNaN(tAmount)) {
               importedListPayload.push({
+                user_id: currentUserId,
                 date: formattedDate,
                 type: tType,
                 category: tCategory,
@@ -703,6 +680,7 @@ const handleManualSubmit = async (e: React.FormEvent) => {
         </div>
       )}
 
+      {/* Modal Tambah Sub Kategori */}
       {isAddSubModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
