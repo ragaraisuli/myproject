@@ -262,10 +262,10 @@ if (error) throw error;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    // Tambahkan juga ke dynamicSubCategories jika belum ada
+// Jika pengguna mengetik sub kategori baru yang belum ada di daftar
     if (category && !categoryOptions[type]?.includes(category)) {
       // 1. Simpan sub-kategori baru ke tabel sub_categories Supabase
-      await supabase.from("sub_categories").insert([
+      const { error: subCatError } = await supabase.from("sub_categories").insert([
         {
           user_id: session.user.id,
           type: type,
@@ -273,11 +273,13 @@ if (error) throw error;
         }
       ]);
 
-      // 2. Update state lokal
-      setDynamicSubCategories({
-        ...dynamicSubCategories,
-        [type]: [...(dynamicSubCategories[type] || []), category],
-      });
+      if (subCatError) {
+        console.error("Gagal menyimpan sub kategori baru:", subCatError);
+      } else {
+        // 2. Refresh daftar sub kategori dari database & kembalikan state input kustom ke dropdown
+        await fetchSubCategories();
+        setIsCustomSubCategory(false);
+      }
     }
 
     const parsedAmount = parseFloat(amount);
