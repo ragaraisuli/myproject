@@ -42,7 +42,7 @@ export default function BudgetingPage() {
   const [savedInput, setSavedInput] = useState("");
   const [priorityInput, setPriorityInput] = useState<Priority>("MEDIUM");
 
-  // Ambil data dari Supabase berdasarkan user_id yang aktif
+// Ambil data dari Supabase berdasarkan user_id yang aktif
   const fetchGoals = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -52,7 +52,7 @@ export default function BudgetingPage() {
         .from("budget_goals") // Pastikan nama tabel Anda di Supabase sesuai
         .select("*")
         .eq("user_id", session.user.id)
-        .order("startYear", { ascending: true });
+        .order("start_year", { ascending: true }); // Diperbaiki dari startYear ke start_year
 
       if (error) throw error;
       if (data) {
