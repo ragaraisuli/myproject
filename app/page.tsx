@@ -200,20 +200,43 @@ export default function Home() {
     setNewSubName("");
   };
 
-  const handleDeleteSubCategory = () => {
+const handleDeleteSubCategory = async () => {
     if (!category) return;
-    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus sub kategori "${category}" dari kategori ${type}?`);
+    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus sub kategori "${category}"?`);
     if (!confirmDelete) return;
 
-    const currentOptions = categoryOptions[type] || [];
-    const updatedOptions = currentOptions.filter((item) => item !== category);
+    try {
+      // 1. Ambil sesi pengguna yang sedang aktif
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    setDynamicSubCategories((prev) => ({
-      ...prev,
-      [type]: (prev[type] || []).filter((item) => item !== category),
-    }));
+      // 2. Hapus data dari tabel sub_categories di Supabase
+      const { error } = await supabase
+        .from("sub_categories")
+        .delete()
+        .eq("user_id", session.user.id)
+        .eq("name", category)
+        .eq("type", type);
 
-    setCategory(updatedOptions[0] || "");
+      if (error) {
+        console.error("Gagal menghapus sub kategori dari Supabase:", error.message);
+        alert("Gagal menghapus sub kategori di database.");
+        return;
+      }
+
+      // 3. Perbarui state di frontend jika berhasil di database
+      const currentOptions = categoryOptions[type] || [];
+      const updatedOptions = currentOptions.filter((item) => item !== category);
+
+      setDynamicSubCategories((prev) => ({
+        ...prev,
+        [type]: (prev[type] || []).filter((item) => item !== category),
+      }));
+
+      setCategory(updatedOptions[0] || "");
+    } catch (err) {
+      console.error("Terjadi kesalahan:", err);
+    }
   };
 
   const handleTypeChange = (newType: string) => {
