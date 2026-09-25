@@ -42,6 +42,51 @@ export default function Home() {
     Pengeluaran: [],
     Aset: [],
   });
+// State untuk menyimpan daftar opsi kategori yang aktif di UI
+  const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>({
+    Pemasukan: ["Gaji Suami", "Bonus", "Investasi", "Lainnya"],
+    Pengeluaran: [], // Kosongkan agar murni diambil dari Supabase
+    Aset: ["Tabungan Bank", "Emas", "Reksa Dana", "Kas Tunai"],
+  });
+
+  // Fungsi untuk mengambil data sub kategori dari Supabase
+  const fetchSubCategories = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase
+        .from("sub_categories")
+        .select("type, name")
+        .eq("user_id", session.user.id);
+
+      if (error) throw error;
+
+      // Kelompokkan data berdasarkan tipe (Pemasukan, Pengeluaran, Aset)
+      const grouped: Record<string, string[]> = {
+        Pemasukan: ["Gaji Suami", "Bonus", "Investasi", "Lainnya"],
+        Pengeluaran: [],
+        Aset: ["Tabungan Bank", "Emas", "Reksa Dana", "Kas Tunai"],
+      };
+
+      data?.forEach((item) => {
+        if (grouped[item.type]) {
+          if (!grouped[item.type].includes(item.name)) {
+            grouped[item.type].push(item.name);
+          }
+        }
+      });
+
+      setCategoryOptions(grouped);
+    } catch (err) {
+      console.error("Gagal memuat sub kategori:", err);
+    }
+  };
+
+  // Panggil fetchSubCategories saat komponen pertama kali dimuat
+  useEffect(() => {
+    fetchSubCategories();
+  }, []);
 
   useEffect(() => {
     setIsMounted(true);
@@ -134,13 +179,6 @@ useEffect(() => {
     setDate(new Date().toISOString().split("T")[0]);
   }, [isCheckingAuth]);
 
-  // Gabungkan pilihan default dengan sub kategori yang tersimpan di Supabase
-  const categoryOptions: Record<string, string[]> = {
-    Pemasukan: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pemasukan, ...(dynamicSubCategories.Pemasukan || [])])),
-    Pengeluaran: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pengeluaran, ...(dynamicSubCategories.Pengeluaran || [])])),
-    Aset: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Aset, ...(dynamicSubCategories.Aset || [])])),
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -193,19 +231,14 @@ const handleDeleteSubCategory = async () => {
         .eq("name", category)
         .eq("type", type);
 
-      if (error) throw error;
+if (error) throw error;
 
-      // 2. Perbarui state lokal agar langsung hilang dari dropdown
-      const currentOptions = categoryOptions[type] || [];
-      const updatedOptions = currentOptions.filter((item: string) => item !== category);
+      // Perbarui daftar dropdown langsung dari database Supabase
+      await fetchSubCategories();
 
-      setDynamicSubCategories((prev: any) => ({
-        ...prev,
-        [type]: (prev[type] || []).filter((item: string) => item !== category),
-      }));
+      // Reset pilihan aktif ke kosong atau opsi pertama
+      setCategory("");
 
-      // 3. Reset pilihan aktif ke opsi pertama yang tersisa
-      setCategory(updatedOptions[0] || "");
       alert("Sub kategori berhasil dihapus dari database!");
 
     } catch (err) {
