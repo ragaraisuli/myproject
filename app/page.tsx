@@ -112,27 +112,54 @@ export default function Home() {
 
   // Ambil data transaksi khusus milik user yang sedang login dari Supabase
   useEffect(() => {
-    const fetchTransactions = async () => {
+const fetchTransactions = async () => {
       if (!currentUserId) return;
 
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("user_id", currentUserId)
-        .order("date", { ascending: false });
+      let allData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) {
-        console.error("Gagal memuat transaksi dari Supabase:", error.message);
-      } else if (data) {
-        const mappedData: Transaction[] = data.map((item: any) => ({
+      try {
+        // Looping otomatis untuk mengambil semua data tanpa batas (unlimited)
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from("transactions")
+            .select("*")
+            .eq("user_id", currentUserId)
+            .order("date", { ascending: false })
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+
+          if (error) {
+            console.error("Gagal memuat transaksi dari Supabase:", error.message);
+            break;
+          }
+
+          if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            if (data.length < pageSize) {
+              hasMore = false;
+            } else {
+              page++;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+
+        const mappedData: Transaction[] = allData.map((item: any) => ({
           id: item.id.toString(),
           date: item.date,
           type: item.type,
           category: item.category,
           subCategory: item.sub_category || item.subCategory || "-",
           amount: Number(item.amount),
+          notes: item.notes || "",
         }));
+
         setTransactions(mappedData);
+      } catch (err) {
+        console.error("Terjadi kesalahan saat mengambil transaksi:", err);
       }
     };
 
