@@ -69,27 +69,47 @@ export default function AnnualReportPage() {
   const allIncomesSubCategories = Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pemasukan, ...dynamicIncomes]));
   const allExpenseSubCategories = Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pengeluaran, ...dynamicExpenses]));
   
-useEffect(() => {
-const fetchAnnualData = async () => {
+// Load data tahunan langsung dari Supabase dengan sistem unlimited pagination
+  useEffect(() => {
+    const fetchAnnualData = async () => {
       try {
         // 1. Ambil sesi pengguna yang sedang aktif
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // 2. Mengambil data transaksi tahunan dengan filter user_id
-        const { data, error } = await supabase
-          .from("transactions")
-          .select("*")
-          .eq("user_id", session.user.id) // <-- Tambahkan filter ini!
-          .order("date", { ascending: false });
+        // 2. Looping otomatis untuk mengambil semua data tanpa batas (unlimited)
+        let allData: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
 
-        if (error) {
-          console.error("Gagal memuat transaksi tahunan dari Supabase:", error.message);
-          return;
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from("transactions")
+            .select("*")
+            .eq("user_id", session.user.id)
+            .order("date", { ascending: false })
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+
+          if (error) {
+            console.error("Gagal memuat transaksi tahunan dari Supabase:", error.message);
+            break;
+          }
+
+          if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            if (data.length < pageSize) {
+              hasMore = false;
+            } else {
+              page++;
+            }
+          } else {
+            hasMore = false;
+          }
         }
 
-        if (data && data.length > 0) {
-          const parsed = data.map((item: any) => ({
+        if (allData.length > 0) {
+          const parsed = allData.map((item: any) => ({
             id: item.id.toString(),
             date: item.date,
             type: item.type,
