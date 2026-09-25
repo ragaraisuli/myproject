@@ -35,22 +35,39 @@ export default function DashboardPage() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // 2. Mengambil data transaksi dari database Supabase dengan filter user_id
-        const { data, error } = await supabase
-          .from("transactions")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .order("date", { ascending: false });
+        // Looping otomatis untuk mengambil semua data tanpa batas (unlimited)
+        let allData: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
 
-        if (error) {
-          console.error("Gagal memuat transaksi dari Supabase:", error.message);
-          setAvailablePeriods([currentYearMonth]);
-          setSelectedPeriod(currentYearMonth);
-          return;
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from("transactions")
+            .select("*")
+            .eq("user_id", session.user.id)
+            .order("date", { ascending: false })
+            .range(page * pageSize, (page + 1) * pageSize - 1);        
+
+if (error) {
+            console.error("Gagal memuat transaksi dari Supabase:", error.message);
+            break;
+          }
+
+          if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            if (data.length < pageSize) {
+              hasMore = false;
+            } else {
+              page++;
+            }
+          } else {
+            hasMore = false;
+          }
         }
 
-        if (data && data.length > 0) {
-          const mappedData: Transaction[] = data.map((item: any) => ({
+        if (allData.length > 0) {
+          const mappedData: Transaction[] = allData.map((item: any) => ({
             id: item.id.toString(),
             date: item.date,
             type: item.type,
