@@ -334,7 +334,7 @@ const handleDeleteSubCategory = async () => {
       setTransactions([newTxFormatted, ...transactions]);
       setNote("");
       setAmount("");
-      alert("Data berhasil disimpan ke database Supabase!");
+      alert("Data berhasil disimpan");
     }
   };
 
