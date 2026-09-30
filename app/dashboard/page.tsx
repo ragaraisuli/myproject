@@ -586,14 +586,15 @@ if (error) {
 
         </div>
 
-        {/* PROGRESS BUDGET TABLE */}
+{/* PROGRESS BUDGET TABLE */}
         <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
           <div>
             <h2 className="text-base font-bold text-slate-200">PROGRESS BUDGET (TARGET VS AKTUAL)</h2>
             <p className="text-xs text-slate-400">Target dihitung dari rata-rata pengeluaran 3 bulan sebelumnya berdasarkan data kategori transaksi.</p>
           </div>
           
-          <div className="overflow-x-auto">
+          {/* --- VERSİ DESKTOP (Tabel Asli - Sembunyi di HP) --- */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-950 text-slate-400 border-b border-slate-800">
@@ -612,12 +613,10 @@ if (error) {
                   )
                 ).map((subCat: string) => {
                   const key = subCat.toUpperCase();
-
                   const targetVal = getTargetForSubCategory(subCat, selectedPeriod);
                   const actualVal = periodTransactions
                     .filter((t) => t.type?.toLowerCase().includes("pengeluaran") && getSubCat(t).toUpperCase() === key)
                     .reduce((sum, t) => sum + (t.amount || 0), 0);
-
                   const isOver = actualVal > targetVal && targetVal > 0;
 
                   return (
@@ -635,6 +634,42 @@ if (error) {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* --- VERSI HP (Tampilan Kartu Vertikal - Sembunyi di Laptop) --- */}
+          <div className="block md:hidden space-y-3">
+            {Array.from(
+              new Set(
+                transactions
+                  .filter((t) => t.type?.toLowerCase().includes("pengeluaran") && t.category)
+                  .map((t) => t.category)
+              )
+            ).map((subCat: string) => {
+              const key = subCat.toUpperCase();
+              const targetVal = getTargetForSubCategory(subCat, selectedPeriod);
+              const actualVal = periodTransactions
+                .filter((t) => t.type?.toLowerCase().includes("pengeluaran") && getSubCat(t).toUpperCase() === key)
+                .reduce((sum, t) => sum + (t.amount || 0), 0);
+              const isOver = actualVal > targetVal && targetVal > 0;
+
+              return (
+                <div key={subCat} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-200 font-bold text-xs">{subCat}</span>
+                    <span className={`px-2 py-0.5 rounded-md font-bold text-[9px] ${isOver ? "bg-rose-950 text-rose-400 border border-rose-900" : "bg-emerald-950 text-emerald-400 border border-emerald-900"}`}>
+                      {isOver ? "OVER" : "TIDAK OVER"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-slate-400">
+                    <span>Target: {formatRupiah(targetVal)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-slate-800/80">
+                    <span className="text-[11px] text-slate-400">Aktual:</span>
+                    <span className="font-mono text-rose-400 font-bold text-xs">{formatRupiah(actualVal)}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
