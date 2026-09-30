@@ -5,161 +5,92 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 
 export default function LoginPage() {
-  const [userId, setUserId] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: "error" | "success" } | null>(null);
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-const handleForgotPassword = async () => {
-  const cleanUserId = userId.trim().toLowerCase();
-  if (!cleanUserId) {
-    alert("Silakan masukkan email Anda terlebih dahulu pada kolom email.");
-    return;
-  }
-
-  const emailToUse = cleanUserId === "ragaraisuli"
-    ? "ragaraisuli@gmail.com"
-    : `${cleanUserId}@gmail.com`;
-
-  const { error } = await supabase.auth.resetPasswordForEmail(emailToUse, {
-    redirectTo: `https://myproject-finance.vercel.app/dashboard`,
-  });
-
-  if (error) {
-    alert("Gagal mengirim email pemulihan: " + error.message);
-  } else {
-    alert("Tautan pemulihan kata sandi telah dikirim ke email Anda. Silakan cek inbox/spam.");
-  }
-};
-
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage(null);
+    setErrorMessage("");
 
-    // Format User ID menjadi email (menyesuaikan akun utama atau domain lokal)
-    const cleanUserId = userId.trim().toLowerCase();
-    const emailToUse = cleanUserId === "ragaraisuli" 
-      ? "ragaraisuli@gmail.com" 
-      : `${cleanUserId}@gmail.com`;
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (isSignUp) {
-      // Proses Daftar Akun Baru (Sign Up)
-      const { error } = await supabase.auth.signUp({
-        email: emailToUse,
-        password,
-      });
-
-      if (error) {
-        setMessage({ text: error.message || "Gagal mendaftarkan akun.", type: "error" });
-        setLoading(false);
-      } else {
-        setMessage({ 
-          text: "Pendaftaran berhasil! Silakan langsung klik tombol Masuk.", 
-          type: "success" 
-        });
-        setIsSignUp(false);
-        setLoading(false);
-      }
+    if (error) {
+      setErrorMessage(error.message);
+      setLoading(false);
     } else {
-      // Proses Masuk (Login)
-      const { error } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
-        password,
-      });
-
-      if (error) {
-        setMessage({ text: "Email atau Password salah!", type: "error" });
-        setLoading(false);
-      } else {
-        router.push("/");
-        router.refresh();
-      }
+      router.push("/");
     }
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-5">
-        <div className="text-center space-y-1">
-          <h1 className="text-lg font-bold text-white">Financial Planner</h1>
-          <p className="text-xs text-slate-400">
-            {isSignUp ? "Buat akun baru untuk akses catatan" : "Silakan login untuk akses data keuangan"}
-          </p>
+    <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+        
+        {/* Header / Judul */}
+        <div className="text-center space-y-1.5">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-950 border border-emerald-900 text-emerald-400 text-xl mb-1 shadow-inner">
+            📊
+          </div>
+          <h1 className="text-lg sm:text-xl font-bold text-white tracking-wide">Financial Planner</h1>
+          <p className="text-xs text-slate-400">Masuk untuk mengelola keuangan Anda</p>
         </div>
 
-        {message && (
-          <div className={`text-xs p-3 rounded-xl text-center border ${
-            message.type === "error" 
-              ? "bg-rose-950/60 border-rose-900 text-rose-400" 
-              : "bg-emerald-950/60 border-emerald-900 text-emerald-400"
-          }`}>
-            {message.text}
+        {/* Pesan Error jika Gagal Login */}
+        {errorMessage && (
+          <div className="bg-rose-950/60 border border-rose-900 text-rose-300 text-xs p-3 rounded-xl text-center leading-relaxed">
+            {errorMessage}
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4 text-xs">
-          <div>
-            <label className="block text-slate-400 mb-1">Email</label>
+        {/* Form Login */}
+        <form onSubmit={handleLogin} className="space-y-4 text-xs">
+          <div className="space-y-1">
+            <label className="block text-slate-400 font-medium">Email</label>
             <input
-              type="text"
+              type="email"
               required
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="Contoh: finance (tanpa @gmail.com)"
-              className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 outline-none focus:border-emerald-500"
+              placeholder="nama@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-slate-950 text-slate-200 px-3.5 py-3 rounded-xl border border-slate-800 focus:border-emerald-500 focus:outline-none transition text-xs sm:text-sm"
             />
           </div>
 
-          <div>
-            <label className="block text-slate-400 mb-1">Password</label>
+          <div className="space-y-1">
+            <label className="block text-slate-400 font-medium">Kata Sandi</label>
             <input
               type="password"
               required
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 outline-none focus:border-emerald-500"
+              className="w-full bg-slate-950 text-slate-200 px-3.5 py-3 rounded-xl border border-slate-800 focus:border-emerald-500 focus:outline-none transition text-xs sm:text-sm"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-md mt-2 disabled:opacity-50"
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg mt-2 disabled:opacity-50 text-xs sm:text-sm tracking-wide"
           >
-            {loading ? "Memproses..." : isSignUp ? "Daftar Akun (Sign Up)" : "Masuk (Login)"}
+            {loading ? "Memproses..." : "Masuk ke Aplikasi"}
           </button>
         </form>
 
-{!isSignUp && (
-  <div className="text-right mb-4">
-    <button
-      type="button"
-      onClick={handleForgotPassword} // <-- Hubungkan ke fungsi di atas
-      className="text-xs text-slate-400 hover:text-emerald-400 transition"
-    >
-      Lupa Password?
-    </button>
-  </div>
-)}
-
+        {/* Footer Kecil */}
         <div className="text-center pt-2 border-t border-slate-800/80">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setMessage(null);
-            }}
-            className="text-xs text-slate-400 hover:text-emerald-400 transition"
-          >
-            {isSignUp 
-              ? "Sudah punya akun? Masuk di sini" 
-              : "Belum punya akun? Buat baru (Sign Up)"}
-          </button>
+          <p className="text-[11px] text-slate-500">
+            Terhubung secara aman dengan database Supabase
+          </p>
         </div>
+
       </div>
     </main>
   );
