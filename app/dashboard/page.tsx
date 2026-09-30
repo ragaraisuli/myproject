@@ -285,59 +285,33 @@ if (error) {
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 selection:bg-slate-800">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Top Header & Navigation */}
-        <header className="relative bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800/80 p-4 sm:px-6 sm:py-5 rounded-2xl shadow-2xl flex flex-col xl:flex-row justify-between items-center gap-4 overflow-hidden">
+{/* Top Header & Navigation */}
+        <header className="relative bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800/80 p-4 sm:p-5 rounded-2xl shadow-2xl flex flex-col gap-4 overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
 
-          <div className="flex items-center gap-3 w-full xl:w-auto">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold shadow-inner text-base">
-              ❖
+          {/* Baris Atas: Logo, Judul & Periode (Agar langsung terlihat di HP) */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold shadow-inner text-base flex-shrink-0">
+                ❖
+              </div>
+              <div>
+                <h1 className="text-base sm:text-xl font-extrabold tracking-tight text-white">
+                  FINANCIAL PLANNER
+                </h1>
+                <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-emerald-400 uppercase mt-0.5">
+                  Executive Dashboard • {selectedPeriod ? selectedPeriod.split("-")[0] : ""}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-white">
-                FINANCIAL PLANNER
-              </h1>
-              <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-emerald-400 uppercase mt-0.5">
-                Executive Dashboard • {selectedPeriod ? selectedPeriod.split("-")[0] : ""}
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2 flex-wrap justify-start xl:justify-end w-full xl:w-auto">
-            <Link
-              href="/"
-              className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-700/60 flex items-center gap-1"
-            >
-              <span>←</span> Input
-            </Link>
-
-            <Link
-              href="/budgeting"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shadow-md flex items-center gap-1"
-            >
-              <span>🎯</span> Budgeting
-            </Link>
-
-            <Link
-              href="/annual"
-              className="bg-violet-600 hover:bg-violet-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shadow-md flex items-center gap-1"
-            >
-              <span>📊</span> Laporan Tahunan
-            </Link>
-
-            <button
-              onClick={exportToExcel}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shadow-md flex items-center gap-1"
-            >
-              <span>📥</span> Export Excel
-            </button>
-
-            <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 shadow-inner">
-              <span className="text-[10px] text-slate-400 font-medium">Periode:</span>
+            {/* Kotak Pilih Periode di HP / Kanan atas */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 shadow-inner w-full sm:w-auto">
+              <span className="text-[11px] text-slate-400 font-medium">Periode:</span>
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="bg-transparent text-emerald-400 font-bold text-xs outline-none cursor-pointer"
+                className="bg-transparent text-emerald-400 font-bold text-xs outline-none cursor-pointer text-right"
               >
                 {availablePeriods.map((p) => (
                   <option key={p} value={p} className="bg-slate-900 text-slate-100">
@@ -347,60 +321,98 @@ if (error) {
               </select>
             </div>
           </div>
+
+          {/* Baris Bawah: Tombol Menu Navigasi (Grid 2 kolom di HP, Flex ke samping di Laptop) */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 pt-2 border-t border-slate-800/60">
+            <Link
+              href="/"
+              className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-700/60 flex items-center justify-center sm:justify-start gap-1"
+            >
+              <span>←</span> Input
+            </Link>
+
+            <Link
+              href="/budgeting"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shadow-md flex items-center justify-center sm:justify-start gap-1"
+            >
+              <span>🎯</span> Budgeting
+            </Link>
+
+            <Link
+              href="/annual"
+              className="bg-violet-600 hover:bg-violet-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shadow-md flex items-center justify-center sm:justify-start gap-1"
+            >
+              <span>📊</span> Laporan Tahunan
+            </Link>
+
+            <button
+              onClick={exportToExcel}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shadow-md flex items-center justify-center sm:justify-start gap-1 col-span-2 sm:col-span-1"
+            >
+              <span>📥</span> Export Excel
+            </button>
+          </div>
         </header>
 
-        {/* Top Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+{/* Top Summary Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <p className="text-[10px] sm:text-xs font-bold text-slate-400 tracking-wider">SALDO BULAN LALU</p>
-            <p className="text-base sm:text-xl font-bold text-blue-400 mt-1 sm:mt-2 truncate">{formatRupiah(saldoAwalBulanLalu)}</p>
+            <p className="text-sm sm:text-xl font-bold text-blue-400 mt-1 sm:mt-2 truncate">{formatRupiah(saldoAwalBulanLalu)}</p>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <p className="text-[10px] sm:text-xs font-bold text-slate-400 tracking-wider">PEMASUKAN</p>
-            <p className="text-base sm:text-xl font-bold text-emerald-400 mt-1 sm:mt-2 truncate">{formatRupiah(totalPemasukan)}</p>
+            <p className="text-sm sm:text-xl font-bold text-emerald-400 mt-1 sm:mt-2 truncate">{formatRupiah(totalPemasukan)}</p>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <p className="text-[10px] sm:text-xs font-bold text-slate-400 tracking-wider">PENGELUARAN</p>
-            <p className="text-base sm:text-xl font-bold text-rose-400 mt-1 sm:mt-2 truncate">{formatRupiah(totalPengeluaran)}</p>
+            <p className="text-sm sm:text-xl font-bold text-rose-400 mt-1 sm:mt-2 truncate">{formatRupiah(totalPengeluaran)}</p>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <p className="text-[10px] sm:text-xs font-bold text-slate-400 tracking-wider">SISA BULAN INI</p>
-            <p className={`text-base sm:text-xl font-bold mt-1 sm:mt-2 truncate ${isDefisit ? "text-rose-400" : "text-emerald-400"}`}>
+            <p className={`text-sm sm:text-xl font-bold mt-1 sm:mt-2 truncate ${isDefisit ? "text-rose-400" : "text-emerald-400"}`}>
               {formatRupiah(sisaSaldo)}
             </p>
           </div>
 
-          <div className="col-span-2 sm:col-span-2 lg:col-span-1 bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-4 rounded-2xl shadow-lg">
-            <p className="text-[10px] sm:text-xs font-bold text-amber-400 tracking-wider">TOTAL AKUMULASI SALDO</p>
-            <p className="text-base sm:text-xl font-bold text-white mt-1 sm:mt-2 truncate">{formatRupiah(totalKeseluruhanSaldo)}</p>
+          {/* Kartu Kelima (Total Akumulasi Saldo) otomatis melebar penuh di bawah pada HP, dan kembali normal di Laptop */}
+          <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-4 rounded-2xl shadow-lg flex flex-row lg:flex-col justify-between items-center lg:items-start">
+            <div>
+              <p className="text-[10px] sm:text-xs font-bold text-amber-400 tracking-wider">TOTAL AKUMULASI SALDO</p>
+              <p className="text-base sm:text-xl font-bold text-white mt-0.5 lg:mt-2 truncate">{formatRupiah(totalKeseluruhanSaldo)}</p>
+            </div>
+            {/* Indikator kecil tambahan opsional untuk mempermanis tampilan mobile */}
+            <span className="hidden lg:block text-[10px] text-slate-400">Akumulasi keseluruhan</span>
           </div>
         </div>
 
-        <div className={`mb-6 p-6 rounded-2xl border ${health.bg} shadow-xl backdrop-blur-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4`}>
+        {/* Financial Health Score Banner */}
+        <div className={`mb-6 p-4 sm:p-6 rounded-2xl border ${health.bg} shadow-xl backdrop-blur-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4`}>
           <div>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Financial Health Score</div>
-            <div className={`text-xl font-extrabold mt-1 ${health.color}`}>{health.label}</div>
-            <p className="text-xs text-gray-400 mt-1">Berdasarkan rasio tabungan terhadap total pemasukan bulan berjalan.</p>
+            <div className="text-[11px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest">Financial Health Score</div>
+            <div className={`text-lg sm:text-xl font-extrabold mt-0.5 sm:mt-1 ${health.color}`}>{health.label}</div>
+            <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5">Berdasarkan rasio tabungan terhadap total pemasukan bulan berjalan.</p>
           </div>
-          <div className="flex items-center gap-6 bg-gray-900/60 px-5 py-3 rounded-xl border border-gray-800">
+          
+          <div className="flex items-center justify-between lg:justify-end gap-4 sm:gap-6 bg-gray-900/60 px-4 sm:px-5 py-3 rounded-xl border border-gray-800 w-full lg:w-auto">
             <div>
-              <div className="text-xs text-gray-400">Rasio Tabungan</div>
-              <div className="text-lg font-bold text-white">{savingsRate.toFixed(1)}%</div>
+              <div className="text-[11px] sm:text-xs text-gray-400">Rasio Tabungan</div>
+              <div className="text-base sm:text-lg font-bold text-white">{savingsRate.toFixed(1)}%</div>
             </div>
             <div className="h-8 w-[1px] bg-gray-800"></div>
             <div>
-              <div className="text-xs text-gray-400">Sisa Saldo</div>
-              <div className={`text-lg font-bold ${sisaSaldo >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                Rp {sisaSaldo.toLocaleString('id-ID')}
+              <div className="text-[11px] sm:text-xs text-gray-400">Sisa Saldo</div>
+              <div className={`text-base sm:text-lg font-bold truncate ${sisaSaldo >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {formatRupiah(sisaSaldo)}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Baris 1: Top 3, Grafik, Rekap Pengeluaran */}
+{/* Baris 1: Top 3, Grafik, Rekap Pengeluaran */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Top 3 Pengeluaran */}
@@ -416,13 +428,13 @@ if (error) {
                   const medals = ["🥇", "🥈", "🥉"];
                   return (
                     <div key={subCat} className="flex items-center justify-between bg-slate-950 px-3.5 py-3 rounded-xl border border-slate-800/80">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-sm">{medals[index]}</span>
-                        <div className="max-w-[140px] sm:max-w-[180px]">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
+                        <span className="text-sm shrink-0">{medals[index]}</span>
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-slate-200 truncate">{subCat}</p>
                         </div>
                       </div>
-                      <span className="text-xs font-mono font-bold text-rose-400">{formatRupiah(amount)}</span>
+                      <span className="text-xs font-mono font-bold text-rose-400 shrink-0">{formatRupiah(amount)}</span>
                     </div>
                   );
                 })
@@ -459,9 +471,9 @@ if (error) {
                     }).join(", ");
                   })()})`
                 }}>
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-950 rounded-full flex flex-col items-center justify-center border border-slate-800 shadow-inner">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-950 rounded-full flex flex-col items-center justify-center border border-slate-800 shadow-inner px-1 text-center">
                     <span className="text-[9px] text-slate-400 font-semibold">TOTAL</span>
-                    <span className="text-[10px] font-bold text-rose-400 truncate max-w-[60px]">{formatRupiah(totalPengeluaran)}</span>
+                    <span className="text-[10px] font-bold text-rose-400 truncate w-full">{formatRupiah(totalPengeluaran)}</span>
                   </div>
                 </div>
               ) : (
@@ -471,17 +483,17 @@ if (error) {
               )}
             </div>
 
-            <div className="max-h-28 overflow-y-auto pr-1 space-y-1.5 mt-4 text-[11px]">
+            <div className="max-h-28 overflow-y-auto pr-1 space-y-1.5 mt-4 text-[11px] custom-scrollbar">
               {expenseChartData.map((item, idx) => {
                 const percent = ((item.amount / totalPengeluaran) * 100).toFixed(1);
                 const color = CHART_COLORS[idx % CHART_COLORS.length];
                 return (
                   <div key={item.subCat} className="flex items-center justify-between bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800/60">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                      <span className="text-slate-300 font-medium truncate max-w-[150px] sm:max-w-[180px]">{item.subCat}</span>
+                      <span className="text-slate-300 font-medium truncate">{item.subCat}</span>
                     </div>
-                    <span className="text-slate-400 font-bold">{percent}%</span>
+                    <span className="text-slate-400 font-bold shrink-0">{percent}%</span>
                   </div>
                 );
               })}
@@ -498,12 +510,12 @@ if (error) {
               <p className="text-xs text-slate-500">Rincian per sub-kategori bulan ini</p>
             </div>
 
-            <div className="py-4 max-h-56 overflow-y-auto pr-1 space-y-2 my-auto">
+            <div className="py-4 max-h-56 overflow-y-auto pr-1 space-y-2 my-auto custom-scrollbar">
               {Object.entries(expenseSummaryMap).length > 0 ? (
                 Object.entries(expenseSummaryMap).map(([subCat, amount]) => (
                   <div key={subCat} className="flex justify-between items-center bg-slate-950 px-3 py-2.5 rounded-xl text-xs border border-slate-800/80">
-                    <span className="text-slate-300 font-medium truncate max-w-[140px] sm:max-w-[180px]">{subCat}</span>
-                    <span className="text-rose-400 font-bold font-mono">{formatRupiah(amount)}</span>
+                    <span className="text-slate-300 font-medium truncate flex-1 mr-2">{subCat}</span>
+                    <span className="text-rose-400 font-bold font-mono shrink-0">{formatRupiah(amount)}</span>
                   </div>
                 ))
               ) : (
@@ -521,7 +533,7 @@ if (error) {
 
         </div>
 
-        {/* Baris 2 Pemasukan & Aset */}
+{/* Baris 2 Pemasukan & Aset */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           
           <div className="bg-slate-900 border border-slate-800 p-5 sm:p-6 rounded-2xl shadow-lg flex flex-col justify-between">
@@ -533,12 +545,12 @@ if (error) {
               <p className="text-xs text-slate-500">Sumber pemasukan bulan ini</p>
             </div>
 
-            <div className="py-4 max-h-52 overflow-y-auto pr-1 space-y-2 my-auto">
+            <div className="py-4 max-h-52 overflow-y-auto pr-1 space-y-2 my-auto custom-scrollbar">
               {Object.entries(incomeSummaryMap).length > 0 ? (
                 Object.entries(incomeSummaryMap).map(([subCat, amount]) => (
                   <div key={subCat} className="flex justify-between items-center bg-slate-950 px-3.5 py-3 rounded-xl text-xs border border-slate-800/80">
-                    <span className="text-slate-300 font-medium truncate max-w-[150px]">{subCat}</span>
-                    <span className="text-emerald-400 font-bold font-mono">{formatRupiah(amount)}</span>
+                    <span className="text-slate-300 font-medium truncate flex-1 mr-2">{subCat}</span>
+                    <span className="text-emerald-400 font-bold font-mono shrink-0">{formatRupiah(amount)}</span>
                   </div>
                 ))
               ) : (
@@ -563,12 +575,12 @@ if (error) {
               <p className="text-xs text-slate-500">Akumulasi aset hingga bulan ini</p>
             </div>
 
-            <div className="py-4 max-h-52 overflow-y-auto pr-1 space-y-2 my-auto">
+            <div className="py-4 max-h-52 overflow-y-auto pr-1 space-y-2 my-auto custom-scrollbar">
               {Object.entries(assetSummaryMap).length > 0 ? (
                 Object.entries(assetSummaryMap).map(([subCat, amount]) => (
                   <div key={subCat} className="flex justify-between items-center bg-slate-950 px-3.5 py-3 rounded-xl text-xs border border-slate-800/80">
-                    <span className="text-slate-300 font-medium truncate max-w-[150px]">{subCat}</span>
-                    <span className="text-blue-400 font-bold font-mono">{formatRupiah(amount)}</span>
+                    <span className="text-slate-300 font-medium truncate flex-1 mr-2">{subCat}</span>
+                    <span className="text-blue-400 font-bold font-mono shrink-0">{formatRupiah(amount)}</span>
                   </div>
                 ))
               ) : (
