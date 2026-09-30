@@ -673,7 +673,7 @@ if (error) {
           </div>
         </section>
 
-        {/* DAFTAR TRANSAKSI PERIODE INI */}
+{/* DAFTAR TRANSAKSI PERIODE INI */}
         <section className="bg-slate-900 border border-slate-800 p-4 sm:p-6 rounded-2xl shadow-lg space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
@@ -692,7 +692,8 @@ if (error) {
             </div>
           </div>
           
-          <div className="overflow-x-auto">
+          {/* --- VERSI DESKTOP (Tabel Asli - Sembunyi di HP) --- */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs min-w-[600px]">
               <thead>
                 <tr className="bg-slate-950 text-slate-400 border-b border-slate-800">
@@ -742,6 +743,53 @@ if (error) {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* --- VERSI HP (Tampilan Kartu Vertikal - Sembunyi di Laptop) --- */}
+          <div className="block md:hidden space-y-3">
+            {periodTransactions.length > 0 ? (
+              periodTransactions
+                .filter((t) => {
+                  const query = searchTerm.toLowerCase();
+                  const subCat = getMainCat(t).toLowerCase();
+                  const freeDesc = getSubCat(t).toLowerCase();
+                  const type = (t.type || "").toLowerCase();
+                  const date = (t.date || "").toLowerCase();
+                  
+                  return (
+                    subCat.includes(query) ||
+                    freeDesc.includes(query) ||
+                    type.includes(query) ||
+                    date.includes(query)
+                  );
+                })
+                .map((t) => {
+                  const isPemasukan = t.type?.toLowerCase().includes("pemasukan");
+                  return (
+                    <div key={t.id} className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl space-y-2">
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-400">{t.date}</span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${isPemasukan ? "bg-emerald-950 text-emerald-400 border border-emerald-900" : t.type?.toLowerCase().includes("pengeluaran") ? "bg-rose-950 text-rose-400 border border-rose-900" : "bg-blue-950 text-blue-400 border border-blue-900"}`}>
+                          {t.type}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="text-slate-200 font-bold text-xs">{getSubCat(t)}</p>
+                          <p className="text-[11px] text-slate-400">{getMainCat(t)}</p>
+                        </div>
+                        <span className={`font-mono font-bold text-xs ${isPemasukan ? "text-emerald-400" : "text-rose-400"}`}>
+                          {isPemasukan ? "+ " : ""}{formatRupiah(t.amount)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+            ) : (
+              <div className="p-6 text-center text-slate-500 text-xs">
+                Tidak ada transaksi pada periode ini.
+              </div>
+            )}
           </div>
         </section>
 
