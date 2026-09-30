@@ -41,6 +41,9 @@ export default function AnnualReportPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>("2026");
   const [availableYears, setAvailableYears] = useState<string[]>(["2026"]);
+  
+  // State khusus untuk navigasi bulan di tampilan HP
+  const [selectedMobileMonthIndex, setSelectedMobileMonthIndex] = useState<number>(new Date().getMonth());
 
 // Ambil sub-kategori secara dinamis langsung dari data transaksi yang ada di Supabase
   const [categoryOptions, setCategoryOptions] = useState<Record<string, string[]>>({
@@ -48,8 +51,6 @@ export default function AnnualReportPage() {
     Pengeluaran: [...DEFAULT_CATEGORY_OPTIONS.Pengeluaran],
   });
 
-  // Di dalam fungsi fetch / useEffect saat data transaksi berhasil didapat dari Supabase, 
-  // tambahkan logika ekstraksi ini:
   const dynamicIncomes = Array.from(
     new Set(
       transactions
@@ -73,11 +74,9 @@ export default function AnnualReportPage() {
   useEffect(() => {
     const fetchAnnualData = async () => {
       try {
-        // 1. Ambil sesi pengguna yang sedang aktif
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // 2. Looping otomatis untuk mengambil semua data tanpa batas (unlimited)
         let allData: any[] = [];
         let page = 0;
         const pageSize = 1000;
@@ -159,7 +158,7 @@ export default function AnnualReportPage() {
     }).format(val);
   };
 
-const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) => {
+  const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) => {
     const targetMonth = monthIndex + 1;
     return transactions
       .filter((t) => {
@@ -176,7 +175,6 @@ const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) 
         const itemMainCat = (t.category || "").trim().toLowerCase();
         const target = (subCat || "").trim().toLowerCase();
 
-        // Cocokkan secara persis antara sub-kategori/kategori transaksi dengan target baris tabel
         return itemSubCat === target || itemMainCat === target;
       })
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -216,7 +214,6 @@ const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) 
 
   const getTotalIncomeByMonth = (monthIndex: number) => {
     const targetMonth = monthIndex + 1;
-
     return transactions
       .filter((t) => {
         if (!t.date || !t.type) return false;
@@ -236,7 +233,6 @@ const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) 
   const grandTotalIncome = monthlyIncomes.reduce((a, b) => a + b, 0);
   const grandTotalExpense = monthlyExpenses.reduce((a, b) => a + b, 0);
 
-  // Data yang disiapkan untuk Grafik Recharts
   const chartData = monthNames.map((m, idx) => ({
     bulan: m.toUpperCase(),
     Pendapatan: monthlyIncomes[idx],
@@ -294,18 +290,18 @@ const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) 
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-6 selection:bg-slate-800">
+    <main className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 selection:bg-slate-800">
       <div className="max-w-7xl mx-auto space-y-8">
         
         <header className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
-            <h1 className="text-2xl font-black tracking-wider text-indigo-400">
+            <h1 className="text-xl sm:text-2xl font-black tracking-wider text-indigo-400">
               LAPORAN & GRAFIK TAHUNAN {selectedYear}
             </h1>
             <p className="text-xs text-slate-400 mt-1">Ringkasan Pendapatan dan Pengeluaran Bulanan secara Menyeluruh</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
             <button
               onClick={handleExportExcel}
               className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition border border-emerald-500 flex items-center gap-2 shadow-lg"
@@ -335,8 +331,12 @@ const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) 
           </div>
         </header>
 
-        {/* TABEL 1: PENDAPATAN PER BULAN */}
-        <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
+        {/* ========================================================= */}
+        {/* VERSI DESKTOP: TABEL 1 (PENDAPATAN) & TABEL 2 (PENGELUARAN) */}
+        {/* ========================================================= */}
+        
+        {/* TABEL 1: PENDAPATAN PER BULAN (DESKTOP) */}
+        <section className="hidden md:block bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
           <h2 className="text-sm font-bold tracking-wider text-emerald-400">SUMMARY PENDAPATAN PER BULAN</h2>
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
@@ -380,8 +380,8 @@ const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) 
           </div>
         </section>
 
-        {/* TABEL 2: PENGELUARAN PER BULAN */}
-        <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
+        {/* TABEL 2: PENGELUARAN PER BULAN (DESKTOP) */}
+        <section className="hidden md:block bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
           <h2 className="text-sm font-bold tracking-wider text-rose-400">SUMMARY PENGELUARAN PER BULAN</h2>
           <div className="overflow-x-auto custom-scrollbar max-h-[500px]">
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
@@ -426,22 +426,113 @@ const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) 
           </div>
         </section>
 
+
+        {/* ========================================================= */}
+        {/* VERSI HP: TAMPILAN KARTU PILIH BULAN (MONTH-BY-MONTH VIEW)   */}
+        {/* ========================================================= */}
+        <section className="block md:hidden bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg space-y-4">
+          <div>
+            <h2 className="text-sm font-bold tracking-wider text-indigo-400">RINGKASAN BULANAN TAHUN {selectedYear}</h2>
+            <p className="text-[11px] text-slate-400">Pilih bulan untuk melihat rincian pendapatan & pengeluaran.</p>
+          </div>
+
+          {/* Pemilih Bulan Horizontal (Scrollable) */}
+          <div className="flex overflow-x-auto gap-2 pb-2 custom-scrollbar">
+            {monthNames.map((m, idx) => {
+              const isSelected = selectedMobileMonthIndex === idx;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setSelectedMobileMonthIndex(idx)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
+                    isSelected
+                      ? "bg-indigo-600 text-white border-indigo-500 shadow-md"
+                      : "bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800"
+                  }`}
+                >
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Kartu Rincian Bulan Terpilih */}
+          <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-4">
+            <div className="border-b border-slate-800 pb-3 flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-200 tracking-wide uppercase">
+                {monthNames[selectedMobileMonthIndex]} {selectedYear}
+              </span>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 block">Sisa / Selisih</span>
+                <span className={`text-xs font-mono font-bold ${
+                  (getTotalIncomeByMonth(selectedMobileMonthIndex) - getTotalExpenseByMonth(selectedMobileMonthIndex)) >= 0 
+                    ? "text-emerald-400" 
+                    : "text-rose-450"
+                }`}>
+                  {formatRupiah(getTotalIncomeByMonth(selectedMobileMonthIndex) - getTotalExpenseByMonth(selectedMobileMonthIndex))}
+                </span>
+              </div>
+            </div>
+
+            {/* Sub-bagian Pemasukan */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs font-bold text-emerald-400 border-b border-emerald-950 pb-1">
+                <span>PENDAPATAN</span>
+                <span>{formatRupiah(getTotalIncomeByMonth(selectedMobileMonthIndex))}</span>
+              </div>
+              <div className="space-y-1.5 pt-1">
+                {allIncomesSubCategories.map((sub) => {
+                  const val = getIncomeByMonthAndSub(selectedMobileMonthIndex, sub);
+                  if (val === 0) return null;
+                  return (
+                    <div key={sub} className="flex justify-between text-xs">
+                      <span className="text-slate-300">{sub}</span>
+                      <span className="font-mono text-slate-200">{formatRupiah(val)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Sub-bagian Pengeluaran */}
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <div className="flex justify-between items-center text-xs font-bold text-rose-400 border-b border-rose-950 pb-1">
+                <span>PENGELUARAN</span>
+                <span>{formatRupiah(getTotalExpenseByMonth(selectedMobileMonthIndex))}</span>
+              </div>
+              <div className="space-y-1.5 pt-1 max-h-60 overflow-y-auto">
+                {allExpenseSubCategories.map((sub) => {
+                  const val = getExpenseByMonthAndSub(selectedMobileMonthIndex, sub);
+                  if (val === 0) return null;
+                  return (
+                    <div key={sub} className="flex justify-between text-xs">
+                      <span className="text-slate-300">{sub}</span>
+                      <span className="font-mono text-rose-400">{formatRupiah(val)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+
+
         {/* GRAFIK 1: BAR CHART PENDAPATAN & PENGELUARAN */}
-        <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
-          <h2 className="text-sm font-bold tracking-wider text-indigo-400 text-center uppercase">
+        <section className="bg-slate-900 border border-slate-800 p-4 sm:p-6 rounded-2xl shadow-lg space-y-4">
+          <h2 className="text-xs sm:text-sm font-bold tracking-wider text-indigo-400 text-center uppercase">
             PENDAPATAN & PENGELUARAN PERBULAN ({selectedYear})
           </h2>
-          <div className="w-full h-80">
+          <div className="w-full h-72 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <BarChart data={chartData} margin={{ top: 20, right: 10, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="bulan" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(val) => `Rp ${val / 1000000}jt`} />
+                <XAxis dataKey="bulan" stroke="#94a3b8" fontSize={10} />
+                <YAxis stroke="#94a3b8" fontSize={10} tickFormatter={(val) => `Rp ${val / 1000000}jt`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "8px" }}
+                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "8px", fontSize: "11px" }}
                   formatter={(value: any) => formatRupiah(Number(value))}
                 />
-                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
+                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
                 <Bar dataKey="Pengeluaran" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Pendapatan" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -450,23 +541,23 @@ const getIncomeByMonthAndSub = (monthIndex: number, subCat: string | undefined) 
         </section>
 
         {/* GRAFIK 2: LINE CHART PENDAPATAN & PENGELUARAN */}
-        <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
-          <h2 className="text-sm font-bold tracking-wider text-indigo-400 text-center uppercase">
+        <section className="bg-slate-900 border border-slate-800 p-4 sm:p-6 rounded-2xl shadow-lg space-y-4">
+          <h2 className="text-xs sm:text-sm font-bold tracking-wider text-indigo-400 text-center uppercase">
             TREN PENDAPATAN & PENGELUARAN PERBULAN ({selectedYear})
           </h2>
-          <div className="w-full h-80">
+          <div className="w-full h-72 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <LineChart data={chartData} margin={{ top: 20, right: 10, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="bulan" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(val) => `Rp ${val / 1000000}jt`} />
+                <XAxis dataKey="bulan" stroke="#94a3b8" fontSize={10} />
+                <YAxis stroke="#94a3b8" fontSize={10} tickFormatter={(val) => `Rp ${val / 1000000}jt`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "8px" }}
+                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "8px", fontSize: "11px" }}
                   formatter={(value: any) => formatRupiah(Number(value))}
                 />
-                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-                <Line type="monotone" dataKey="Pengeluaran" stroke="#f43f5e" strokeWidth={2} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="Pendapatan" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
+                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+                <Line type="monotone" dataKey="Pengeluaran" stroke="#f43f5e" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="Pendapatan" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
