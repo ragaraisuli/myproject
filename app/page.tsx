@@ -44,21 +44,14 @@ export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
 
  const formatRupiahInput = (value: string) => {
-  // Hanya ambil angka
-  const numberString = value.replace(/[^,\d]/g, "").toString();
-  const split = numberString.split(",");
-  const sisa = split[0].length % 3;
-  let rupiah = split[0].substr(0, sisa);
-  const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
-
-  if (ribuan) {
-    const separator = sisa ? "." : "";
-    rupiah += separator + ribuan.join(".");
-  }
-
-  rupiah = split[1] !== undefined ? rupiah + "," + split[1] : rupiah;
-  return rupiah ? "Rp " + rupiah + ",00" : "";
-};
+    // Ambil hanya angka saja dari string
+    const numbers = value.replace(/\D/g, "");
+    if (!numbers) return "";
+    
+    // Format angka menjadi ribuan dengan pemisah titik (.)
+    const formatted = new Intl.NumberFormat("id-ID").format(Number(numbers));
+    return `Rp ${formatted}`;
+  };
 
 const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Ambil hanya angka mentah untuk disimpan di state
@@ -558,14 +551,14 @@ const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               />
             </div>
 
-            <div className="flex flex-col gap-1">
+<div className="flex flex-col gap-1">
   <label className="text-sm font-medium text-slate-300">5. Nominal (Rp)</label>
   <input
     type="text"
     value={amount ? formatRupiahInput(amount) : ""}
     onChange={handleAmountChange}
     placeholder="Contoh: 50000"
-    className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-mono"
+    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
   />
 </div>
 
