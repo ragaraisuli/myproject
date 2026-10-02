@@ -42,31 +42,52 @@ export default function BudgetingPage() {
   const [savedInput, setSavedInput] = useState("");
   const [priorityInput, setPriorityInput] = useState<Priority>("MEDIUM");
 
-  const fetchGoals = async () => {
+const fetchGoals = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data, error } = await supabase
+      // 1. Ambil data budget_goals
+      const { data: goalsData, error: goalsError } = await supabase
         .from("budget_goals")
         .select("*")
         .eq("user_id", session.user.id)
         .order("start_year", { ascending: true });
 
-      if (error) throw error;
-      if (data) {
-        const formatted = data.map((item: any) => ({
-          id: item.id,
-          user_id: item.user_id,
-          description: item.description,
-          amount: item.amount,
-          startMonth: item.start_month || item.startMonth,
-          startYear: item.start_year || item.startYear,
-          targetMonth: item.target_month || item.targetMonth,
-          targetYear: item.target_year || item.targetYear,
-          priority: item.priority || "MEDIUM",
-          savedAmount: item.saved_amount || item.savedAmount || 0,
-        }));
+      if (goalsError) throw goalsError;
+
+      // 2. Ambil seluruh data transactions milik user yang terhubung ke budget_goal_id
+      const { data: txData, error: txError } = await supabase
+        .from("transactions")
+        .select("budget_goal_id, amount")
+        .eq("user_id", session.user.id)
+        .not("budget_goal_id", "is", null);
+
+      if (txError) throw txError;
+
+      // 3. Hitung total amount dari transaksi untuk masing-masing budget_goal_id
+      if (goalsData) {
+        const formatted = goalsData.map((item: any) => {
+          // Jumlahkan transaksi yang budget_goal_id-nya sama dengan id target ini
+          const totalSavedFromTx = txData
+            ? txData
+                .filter((tx: any) => tx.budget_goal_id === item.id)
+                .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
+            : 0;
+
+          return {
+            id: item.id,
+            user_id: item.user_id,
+            description: item.description,
+            amount: item.amount,
+            startMonth: item.start_month || item.startMonth,
+            startYear: item.start_year || item.startYear,
+            targetMonth: item.target_month || item.targetMonth,
+            targetYear: item.target_year || item.targetYear,
+            priority: item.priority || "MEDIUM",
+            savedAmount: totalSavedFromTx, // Otomatis terisi dari total transaksi terhubung!
+          };
+        });
         setGoals(formatted);
       }
     } catch (err) {
@@ -151,7 +172,6 @@ export default function BudgetingPage() {
     if (!descInput.trim() || !amountInput || !startMonthInput || !targetMonthInput) return;
 
     const numAmount = parseFloat(amountInput);
-    const numSaved = savedInput ? parseFloat(savedInput) : 0;
     if (isNaN(numAmount)) return;
 
     const [sYear, sMonth] = startMonthInput.split("-").map(Number);
@@ -169,11 +189,11 @@ export default function BudgetingPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const payload = {
+const payload = {
         user_id: session.user.id,
         description: descInput.toUpperCase(),
         amount: numAmount,
-        saved_amount: numSaved,
+        saved_amount: 0, // Dikosongkan/0 karena dihitung otomatis dari transaksi
         start_month: sMonth,
         start_year: sYear,
         target_month: tMonth,
@@ -538,19 +558,33 @@ export default function BudgetingPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-400 mb-1">Sudah Terkumpul Saat Ini (Rp)</label>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={savedInput}
-                      onChange={(e) => setSavedInput(e.target.value)}
-                      className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
+<div>
+                  <label className="block font-semibold text-slate-400 mb-1">Total Target Nominal (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="50000000"
+                    value={amountInput}
+                    onChange={(e) => setAmountInput(e.target.value)}
+                    className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none font-mono"
+                  />
                 </div>
 
                 <div>
+                  <label className="block font-semibold text-slate-400 mb-1">Prioritas Target</label>
+                  <select
+                    value={priorityInput}
+                    onChange={(e) => setPriorityInput(e.target.value as Priority)}
+                    className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none cursor-pointer"
+                  >
+                    <option value="HIGH">HIGH (Prioritas Tinggi / Wajib)</option>
+                    <option value="MEDIUM">MEDIUM (Prioritas Sedang)</option>
+                    <option value="LOW">LOW (Prioritas Rendah / Opsional)</option>
+                  </select>
+                </div>
+                </div>
+
+               <div>
                   <label className="block font-semibold text-slate-400 mb-1">Prioritas Target</label>
                   <select
                     value={priorityInput}
