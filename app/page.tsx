@@ -755,8 +755,8 @@ const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       )}
 
 {isTypeSheetOpen && (
-  <div className="fixed inset-0 z-50 bg-black/70 flex justify-end flex-col backdrop-blur-sm transition-all">
-    <div className="bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 shadow-2xl max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+  <div className="fixed inset-0 z-50 bg-black/70 flex justify-end sm:justify-center items-end sm:items-center p-0 sm:p-4 backdrop-blur-sm transition-all">
+    <div className="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl w-full sm:max-w-md max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
       
       {/* Header Pop-up */}
       <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
