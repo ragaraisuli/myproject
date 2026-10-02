@@ -42,21 +42,19 @@ export default function BudgetingPage() {
   const [savedInput, setSavedInput] = useState("");
   const [priorityInput, setPriorityInput] = useState<Priority>("MEDIUM");
 
-// Ambil data dari Supabase berdasarkan user_id yang aktif
   const fetchGoals = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
       const { data, error } = await supabase
-        .from("budget_goals") // Pastikan nama tabel Anda di Supabase sesuai
+        .from("budget_goals")
         .select("*")
         .eq("user_id", session.user.id)
-        .order("start_year", { ascending: true }); // Diperbaiki dari startYear ke start_year
+        .order("start_year", { ascending: true });
 
       if (error) throw error;
       if (data) {
-        // Map kolom dari database jika diperlukan
         const formatted = data.map((item: any) => ({
           id: item.id,
           user_id: item.user_id,
@@ -199,7 +197,7 @@ export default function BudgetingPage() {
       }
 
       setIsModalOpen(false);
-      fetchGoals(); // Refresh data dari database
+      fetchGoals();
     } catch (err) {
       console.error("Gagal menyimpan data:", err);
       alert("Terjadi kesalahan saat menyimpan data ke database.");
@@ -253,94 +251,168 @@ export default function BudgetingPage() {
   const totalSavedNominal = goals.reduce((sum, g) => sum + (g.savedAmount || 0), 0);
   const availableYears = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2, currentYear + 3, currentYear + 4, currentYear + 5];
 
+  const priorityColors = {
+    HIGH: "bg-rose-950/60 text-rose-400 border-rose-900/50",
+    MEDIUM: "bg-amber-950/60 text-amber-400 border-amber-900/50",
+    LOW: "bg-emerald-950/60 text-emerald-400 border-emerald-900/50",
+  };
+
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-6 selection:bg-slate-800">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <main className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 selection:bg-slate-800">
+      <div className="max-w-7xl mx-auto space-y-5">
         
         {/* Header Navigasi */}
-        <header className="relative bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800/80 px-6 py-5 rounded-2xl shadow-2xl flex flex-col xl:flex-row justify-between items-center gap-5 overflow-hidden">
+        <header className="relative bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800/80 px-4 sm:px-6 py-5 rounded-2xl shadow-2xl flex flex-col xl:flex-row justify-between items-center gap-4 overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
 
-          <div className="flex items-center gap-4 w-full xl:w-auto">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/25 to-purple-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner text-lg">
+          <div className="flex items-center gap-3 w-full xl:w-auto">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/25 to-purple-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner text-base">
               🎯
             </div>
             <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                TARGET BUDGETING JANGKA PANJANG
+              <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-white">
+                TARGET BUDGETING
               </h1>
-              <p className="text-[11px] font-bold tracking-[0.2em] text-indigo-400 uppercase mt-0.5">
-                Sinking Funds & Progres Tabungan Keluarga
+              <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.15em] text-indigo-400 uppercase mt-0.5">
+                Sinking Funds & Progres Tabungan
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap justify-end w-full xl:w-auto">
+          <div className="flex items-center gap-2 flex-wrap justify-end w-full xl:w-auto">
             <Link
               href="/dashboard"
-              className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition border border-slate-700/60 shadow-sm flex items-center gap-1.5"
+              className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition border border-slate-700/60 shadow-sm flex items-center gap-1"
             >
               <span>←</span> Dashboard
             </Link>
 
             <button
               onClick={handleExportCSV}
-              className="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-900/50 px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5"
+              className="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-900/50 px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1"
             >
-              <span>📥</span> Ekspor CSV
+              <span>📥</span> CSV
             </button>
 
             <button
               onClick={handleOpenAdd}
-              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition shadow-md shadow-indigo-950/50 flex items-center gap-1.5"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow-md shadow-indigo-950/50 flex items-center gap-1"
             >
-              <span>+</span> Tambah Target Baru
+              <span>+</span> Target Baru
             </button>
           </div>
         </header>
 
         {/* Ringkasan Statistik */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <p className="text-xs text-slate-400 font-medium">Total Seluruh Target</p>
-            <p className="text-lg font-extrabold text-emerald-400 mt-1 font-mono">{formatRupiah(grandTotalNominal)}</p>
+            <p className="text-base sm:text-lg font-extrabold text-emerald-400 mt-1 font-mono">{formatRupiah(grandTotalNominal)}</p>
           </div>
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <p className="text-xs text-slate-400 font-medium">Akumulasi Terkumpul</p>
-            <p className="text-lg font-extrabold text-indigo-400 mt-1 font-mono">{formatRupiah(totalSavedNominal)}</p>
+            <p className="text-base sm:text-lg font-extrabold text-indigo-400 mt-1 font-mono">{formatRupiah(totalSavedNominal)}</p>
           </div>
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <p className="text-xs text-slate-400 font-medium">Sisa Kekurangan Target</p>
-            <p className="text-lg font-extrabold text-amber-400 mt-1 font-mono">{formatRupiah(grandTotalNominal - totalSavedNominal)}</p>
+            <p className="text-base sm:text-lg font-extrabold text-amber-400 mt-1 font-mono">{formatRupiah(grandTotalNominal - totalSavedNominal)}</p>
           </div>
         </div>
 
-        {/* Tabel Utama Budgeting */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-5 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/50">
-            <div>
-              <h2 className="text-sm font-bold text-slate-200">MATRIKS ALOKASI & PROGRES TABUNGAN</h2>
-              <p className="text-xs text-slate-400">Menampilkan alokasi bulanan dan status progres target untuk tahun {activeYear}.</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
-                <span className="text-xs text-slate-400 font-medium">Tahun Tabel:</span>
-                <select
-                  value={activeYear}
-                  onChange={(e) => setActiveYear(Number(e.target.value))}
-                  className="bg-transparent text-indigo-400 font-bold text-xs outline-none cursor-pointer"
-                >
-                  {availableYears.map((yr) => (
-                    <option key={yr} value={yr} className="bg-slate-900 text-slate-100">
-                      {yr}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+        {/* Filter Tahun */}
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 className="text-xs font-bold text-slate-200">DAFTAR TARGET KEBUTUHAN</h2>
+            <p className="text-[11px] text-slate-400">Atur tahun tinjauan untuk melihat alokasi bulanan.</p>
           </div>
+          <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 w-full sm:w-auto justify-between sm:justify-start">
+            <span className="text-xs text-slate-400 font-medium">Tahun Tinjauan:</span>
+            <select
+              value={activeYear}
+              onChange={(e) => setActiveYear(Number(e.target.value))}
+              className="bg-transparent text-indigo-400 font-bold text-xs outline-none cursor-pointer"
+            >
+              {availableYears.map((yr) => (
+                <option key={yr} value={yr} className="bg-slate-900 text-slate-100">
+                  {yr}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
+        {/* TAMPILAN KHUSUS HP (MOBILE CARD VIEW): Muncul di layar kecil (hidden di lg) */}
+        <div className="grid grid-cols-1 gap-3 lg:hidden">
+          {goals.map((g) => {
+            const totalSpan = calculateTotalMonthsSpan(g);
+            const monthlyAlloc = g.amount / totalSpan;
+            const progressPct = calculateProgressPercentage(g);
+
+            const startTime = g.startYear * 12 + g.startMonth;
+            const targetTime = g.targetYear * 12 + g.targetMonth;
+            const currentCellTime = activeYear * 12 + currentMonth;
+            const isActiveThisYear = currentCellTime >= startTime && currentCellTime <= targetTime;
+
+            return (
+              <div key={g.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold border mb-1 ${priorityColors[g.priority || "MEDIUM"]}`}>
+                      {g.priority || "MEDIUM"}
+                    </span>
+                    <h3 className="text-sm font-bold text-white">{g.description}</h3>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => handleEdit(g)} className="text-indigo-400 hover:text-indigo-300 text-xs px-2.5 py-1 bg-indigo-950/60 rounded-lg border border-indigo-900/50">Edit</button>
+                    <button onClick={() => handleDelete(g.id)} className="text-rose-400 hover:text-rose-300 text-xs px-2.5 py-1 bg-rose-950/60 rounded-lg border border-rose-900/50">Hapus</button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800/80 text-xs">
+                  <div>
+                    <p className="text-[10px] text-slate-400">Total Target</p>
+                    <p className="font-mono font-bold text-emerald-400 mt-0.5">{formatRupiah(g.amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400">Terkumpul</p>
+                    <p className="font-mono font-bold text-indigo-400 mt-0.5">{formatRupiah(g.savedAmount || 0)}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                    <span>Progres Waktu</span>
+                    <span className="font-semibold text-slate-200">{progressPct.toFixed(0)}%</span>
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-2 rounded-full" style={{ width: `${progressPct}%` }}></div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] flex justify-between items-center text-slate-300 border-t border-slate-800 pt-2">
+                  <span className="text-slate-400">Jadwal:</span>
+                  <span className="font-medium">{MONTH_NAMES[g.startMonth - 1]} {g.startYear} — {MONTH_NAMES[g.targetMonth - 1]} {g.targetYear}</span>
+                </div>
+
+                {isActiveThisYear && (
+                  <div className="bg-indigo-950/30 border border-indigo-900/40 p-2.5 rounded-xl flex justify-between items-center text-xs">
+                    <span className="text-indigo-300 text-[11px]">Alokasi Bulan Ini ({MONTH_NAMES[currentMonth - 1]}):</span>
+                    <span className="font-mono font-bold text-indigo-400">{formatRupiah(monthlyAlloc)}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {goals.length === 0 && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
+              Belum ada target budgeting. Silakan tambahkan target baru.
+            </div>
+          )}
+        </div>
+
+        {/* TAMPILAN KHUSUS DESKTOP (TABLE VIEW): Muncul di layar besar (hidden di mobile) */}
+        <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead>
@@ -368,15 +440,9 @@ export default function BudgetingPage() {
                   const startTime = g.startYear * 12 + g.startMonth;
                   const targetTime = g.targetYear * 12 + g.targetMonth;
 
-                  const priorityColors = {
-                    HIGH: "bg-rose-950/60 text-rose-400 border-rose-900/50",
-                    MEDIUM: "bg-amber-950/60 text-amber-400 border-amber-900/50",
-                    LOW: "bg-emerald-950/60 text-emerald-400 border-emerald-900/50",
-                  };
-
                   return (
                     <tr key={g.id} className="hover:bg-slate-950/40 transition">
-                      <td className="p-3 font-bold text-slate-200 sticky left-0 bg-slate-900 z-10 shadow-r">{g.description}</td>
+                      <td className="p-3 font-bold text-slate-200 sticky left-0 bg-slate-900 z-10">{g.description}</td>
                       <td className="p-3 text-center">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${priorityColors[g.priority || "MEDIUM"]}`}>
                           {g.priority || "MEDIUM"}
@@ -385,7 +451,6 @@ export default function BudgetingPage() {
                       <td className="p-3 text-right font-mono font-bold text-emerald-400">{formatRupiah(g.amount)}</td>
                       <td className="p-3 text-right font-mono font-bold text-indigo-400">{formatRupiah(g.savedAmount || 0)}</td>
                       
-                      {/* Progress Bar Mini */}
                       <td className="p-3 text-center">
                         <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                           <div className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-2 rounded-full" style={{ width: `${progressPct}%` }}></div>
@@ -411,7 +476,7 @@ export default function BudgetingPage() {
 
                       <td className="p-3 text-center space-x-2">
                         <button onClick={() => handleEdit(g)} className="text-indigo-400 hover:text-indigo-300 font-semibold px-2 py-1 bg-indigo-950/60 rounded border border-indigo-900/50">Edit</button>
-                        <button onClick={() => handleDelete(g.id)} className="text-rose-400 hover:text-rose-300 font-semibold px-2 py-1 bg-rose-950/60 rounded border border-rose-900/50">Hapus</button>
+                        <button onClick={() => handleDelete(g.id)} className="text-rose-400 hover:text-rose-300 font-semibold px-2 py-1 bg-rose-950/60 rounded border border-indigo-900/50">Hapus</button>
                       </td>
                     </tr>
                   );
@@ -448,55 +513,55 @@ export default function BudgetingPage() {
         {/* Modal Tambah / Edit Target */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
               <h3 className="text-base font-bold text-white">
                 {editingId ? "Edit Target Budgeting" : "Tambah Target Budgeting Baru"}
               </h3>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Keterangan / Nama Kebutuhan</label>
+                  <label className="block font-semibold text-slate-400 mb-1">Keterangan / Nama Kebutuhan</label>
                   <input
                     type="text"
                     required
                     placeholder="Contoh: DP RUMAH / QURBAN"
                     value={descInput}
                     onChange={(e) => setDescInput(e.target.value)}
-                    className="w-full bg-slate-950 text-slate-200 text-xs px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none"
+                    className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Total Target Nominal (Rp)</label>
+                    <label className="block font-semibold text-slate-400 mb-1">Total Target Nominal (Rp)</label>
                     <input
                       type="number"
                       required
                       placeholder="50000000"
                       value={amountInput}
                       onChange={(e) => setAmountInput(e.target.value)}
-                      className="w-full bg-slate-950 text-slate-200 text-xs px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none font-mono"
+                      className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Sudah Terkumpul Saat Ini (Rp)</label>
+                    <label className="block font-semibold text-slate-400 mb-1">Sudah Terkumpul Saat Ini (Rp)</label>
                     <input
                       type="number"
                       placeholder="0"
                       value={savedInput}
                       onChange={(e) => setSavedInput(e.target.value)}
-                      className="w-full bg-slate-950 text-slate-200 text-xs px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none font-mono"
+                      className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none font-mono"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Prioritas Target</label>
+                  <label className="block font-semibold text-slate-400 mb-1">Prioritas Target</label>
                   <select
                     value={priorityInput}
                     onChange={(e) => setPriorityInput(e.target.value as Priority)}
-                    className="w-full bg-slate-950 text-slate-200 text-xs px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none cursor-pointer"
+                    className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none cursor-pointer"
                   >
                     <option value="HIGH">HIGH (Prioritas Tinggi / Wajib)</option>
                     <option value="MEDIUM">MEDIUM (Prioritas Sedang)</option>
@@ -506,24 +571,24 @@ export default function BudgetingPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Mulai Menabung (Bulan & Tahun)</label>
+                    <label className="block font-semibold text-slate-400 mb-1">Mulai Menabung (Bulan & Tahun)</label>
                     <input
                       type="month"
                       required
                       value={startMonthInput}
                       onChange={(e) => setStartMonthInput(e.target.value)}
-                      className="w-full bg-slate-950 text-slate-200 text-xs px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none cursor-pointer scheme-dark"
+                      className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none cursor-pointer scheme-dark"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Target Jatuh Tempo (Bulan & Tahun)</label>
+                    <label className="block font-semibold text-slate-400 mb-1">Target Jatuh Tempo (Bulan & Tahun)</label>
                     <input
                       type="month"
                       required
                       value={targetMonthInput}
                       onChange={(e) => setTargetMonthInput(e.target.value)}
-                      className="w-full bg-slate-950 text-slate-200 text-xs px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none cursor-pointer scheme-dark"
+                      className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none cursor-pointer scheme-dark"
                     />
                   </div>
                 </div>
@@ -532,13 +597,13 @@ export default function BudgetingPage() {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition"
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-semibold transition"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow-md shadow-indigo-950"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-semibold transition shadow-md shadow-indigo-950"
                   >
                     Simpan Target
                   </button>
