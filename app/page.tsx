@@ -424,11 +424,10 @@ export default function Home() {
 {/* Total Ringkasan & Tombol Impor Excel */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-lg">
           <div>
-            <p className="text-[11px] text-emerald-400 font-medium">Total Pemasukan</p>
-            <p className="text-lg font-extrabold text-emerald-400 font-mono mt-0.5">{formatRupiah(totalPemasukan)}</p>
+          <p className="text-lg font-extrabold text-emerald-400 font-mono mt-0.5">{formatRupiah(totalPemasukan)}</p>
           </div>
           <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 p-2.5 rounded-xl border border-slate-700 text-emerald-400 text-xs flex items-center gap-1 transition shadow-inner" title="Impor Excel">
-            <span>📥 Impor</span>
+            <span>📥 Import excel</span>
             <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
           </label>
         </div>
