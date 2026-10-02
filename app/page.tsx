@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
+import * as XLSX from "xlsx";
 
 type Transaction = {
   id: string;
@@ -185,6 +186,44 @@ export default function Home() {
     Pemasukan: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pemasukan, ...(dynamicSubCategories.Pemasukan || [])])),
     Pengeluaran: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pengeluaran, ...(dynamicSubCategories.Pengeluaran || [])])),
     Aset: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Aset, ...(dynamicSubCategories.Aset || [])])),
+  };
+
+// FITUR IMPOR EXCEL
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUserId) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+        const formattedData = data.map((item) => ({
+          user_id: currentUserId,
+          date: item.Date || item.tanggal || new Date().toISOString().split("T")[0],
+          type: item.Type || item.tipe || "Pemasukan",
+          category: item.Category || item.kategori || "Lainnya",
+          sub_category: item.SubCategory || item.sub_kategori || "-",
+          amount: parseFloat(item.Amount || item.nominal || 0),
+        }));
+
+        const { error } = await supabase.from("transactions").insert(formattedData);
+        if (error) {
+          alert("Gagal mengimpor data ke database: " + error.message);
+        } else {
+          alert("Berhasil mengimpor data!");
+          window.location.reload();
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Gagal membaca file Excel.");
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   const handleLogout = async () => {
@@ -382,6 +421,18 @@ export default function Home() {
             <span>🚪</span> Keluar
           </button>
           
+{/* Total Ringkasan & Tombol Impor Excel */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-lg">
+          <div>
+            <p className="text-[11px] text-emerald-400 font-medium">Total Pemasukan</p>
+            <p className="text-lg font-extrabold text-emerald-400 font-mono mt-0.5">{formatRupiah(totalPemasukan)}</p>
+          </div>
+          <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 p-2.5 rounded-xl border border-slate-700 text-emerald-400 text-xs flex items-center gap-1 transition shadow-inner" title="Impor Excel">
+            <span>📥 Impor</span>
+            <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
+          </label>
+        </div>
+
           <div className="flex gap-2">
             <Link
               href="/dashboard"
@@ -394,7 +445,7 @@ export default function Home() {
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center shadow-xl space-y-1">
           <h1 className="text-lg font-bold text-white">Financial Planner</h1>
-          <p className="text-[11px] text-slate-400">Catat keuangan harian langsung dari HP (Secured & Supabase)</p>
+          <p className="text-[11px] text-slate-400">Catat keuangan harian langsung dari HP</p>
         </div>
 
         {/* Total Ringkasan */}
