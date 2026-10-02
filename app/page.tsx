@@ -20,7 +20,14 @@ const DEFAULT_CATEGORY_OPTIONS: Record<string, string[]> = {
   Aset: ["Tabungan Bank", "Emas", "Reksa Dana", "Kas Tunai"],
 };
 
+type BudgetGoal = {
+  id: string;
+  description: string;
+};
+
 export default function Home() {
+  const [budgetGoals, setBudgetGoals] = useState<BudgetGoal[]>([]);
+  const [selectedBudgetGoalId, setSelectedBudgetGoalId] = useState("");
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -48,6 +55,26 @@ export default function Home() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+  const fetchBudgetGoals = async () => {
+    if (!currentUserId) return;
+    const { data, error } = await supabase
+      .from("budget_goals")
+      .select("id, description")
+      .eq("user_id", currentUserId);
+
+    if (error) {
+      console.error("Gagal memuat target budgeting:", error.message);
+    } else if (data) {
+      setBudgetGoals(data);
+    }
+  };
+
+  if (!isCheckingAuth && currentUserId) {
+    fetchBudgetGoals();
+  }
+}, [isCheckingAuth, currentUserId]);
 
   useEffect(() => {
     const checkUserSession = async () => {
@@ -263,6 +290,7 @@ export default function Home() {
       category: category,
       sub_category: note,
       amount: parsedAmount,
+      budget_goal_id: selectedBudgetGoalId ? selectedBudgetGoalId : null,
     };
 
     const { data, error } = await supabase
@@ -285,6 +313,7 @@ export default function Home() {
       setTransactions([newTxFormatted, ...transactions]);
       setNote("");
       setAmount("");
+      setSelectedBudgetGoalId("");
       alert("Data berhasil disimpan!");
     }
   };
