@@ -348,11 +348,6 @@ export default function BudgetingPage() {
             const monthlyAlloc = g.amount / totalSpan;
             const progressPct = calculateProgressPercentage(g);
 
-            const startTime = g.startYear * 12 + g.startMonth;
-            const targetTime = g.targetYear * 12 + g.targetMonth;
-            const currentCellTime = activeYear * 12 + currentMonth;
-            const isActiveThisYear = currentCellTime >= startTime && currentCellTime <= targetTime;
-
             return (
               <div key={g.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
                 <div className="flex justify-between items-start gap-2">
@@ -379,6 +374,12 @@ export default function BudgetingPage() {
                   </div>
                 </div>
 
+                {/* Tambahan Info Alokasi Per Bulan */}
+                <div className="bg-indigo-950/30 border border-indigo-900/40 p-2.5 rounded-xl flex justify-between items-center text-xs">
+                  <span className="text-indigo-300 text-[11px]">Alokasi Per Bulan:</span>
+                  <span className="font-mono font-bold text-indigo-400">{formatRupiah(monthlyAlloc)}</span>
+                </div>
+
                 <div>
                   <div className="flex justify-between text-[10px] text-slate-400 mb-1">
                     <span>Progres Waktu</span>
@@ -393,13 +394,6 @@ export default function BudgetingPage() {
                   <span className="text-slate-400">Jadwal:</span>
                   <span className="font-medium">{MONTH_NAMES[g.startMonth - 1]} {g.startYear} — {MONTH_NAMES[g.targetMonth - 1]} {g.targetYear}</span>
                 </div>
-
-                {isActiveThisYear && (
-                  <div className="bg-indigo-950/30 border border-indigo-900/40 p-2.5 rounded-xl flex justify-between items-center text-xs">
-                    <span className="text-indigo-300 text-[11px]">Alokasi Bulan Ini ({MONTH_NAMES[currentMonth - 1]}):</span>
-                    <span className="font-mono font-bold text-indigo-400">{formatRupiah(monthlyAlloc)}</span>
-                  </div>
-                )}
               </div>
             );
           })}
