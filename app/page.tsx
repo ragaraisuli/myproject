@@ -22,7 +22,8 @@ const DEFAULT_CATEGORY_OPTIONS: Record<string, string[]> = {
 
 type BudgetGoal = {
   id: string;
-  description: string;
+  name?: string;
+  description?: string;
 };
 
 export default function Home() {
@@ -110,10 +111,10 @@ export default function Home() {
         setDynamicSubCategories(extracted);
       }
 
-      // 2. Ambil Target Budgeting
+      // 2. Ambil Target Budgeting (Mendukung berbagai nama kolom seperti 'name' atau 'description')
       const { data: goalData, error: goalError } = await supabase
         .from("budget_goals")
-        .select("id, description")
+        .select("*")
         .eq("user_id", currentUserId);
 
       if (goalError) {
@@ -231,9 +232,8 @@ export default function Home() {
   const handleDeleteSubCategory = async () => {
     if (!category) return;
     
-    // Cek apakah kategori yang dipilih adalah bagian dari Target Budgeting (tidak boleh dihapus dari sini)
-    const isGoal = budgetGoals.some((g) => g.description === category);
-    if (isGoal) {
+    const goalNameMatch = budgetGoals.some((g) => (g.description || g.name) === category);
+    if (goalNameMatch) {
       alert("Target budgeting dikelola langsung dari Dashboard Budgeting!");
       return;
     }
@@ -572,28 +572,35 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1 py-1 max-h-[45vh]">
               
-              {/* Bagian Target Budgeting (Hanya tampil jika tipe Aset & ada data budget goals) */}
-              {type === "Aset" && budgetGoals.length > 0 && (
-                <div className="space-y-1.5 mb-2">
+              {/* Bagian Target Budgeting (Selalu Tampil untuk Tipe Aset, menampilkan indikator jika ada/kosong) */}
+              {type === "Aset" && (
+                <div className="space-y-1.5 mb-2 bg-amber-950/10 p-2.5 rounded-xl border border-amber-900/30">
                   <p className="text-[10px] uppercase tracking-wider text-amber-400 font-bold px-1">🎯 Target Budgeting Anda:</p>
-                  {budgetGoals.map((goal) => {
-                    const isSelected = category === goal.description;
-                    return (
-                      <button
-                        type="button"
-                        key={goal.id}
-                        onClick={() => handleSelectSubCategory(goal.description, goal.id)}
-                        className={`w-full p-3 rounded-xl text-xs font-medium text-left transition flex justify-between items-center border ${
-                          isSelected
-                            ? "bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-md"
-                            : "bg-amber-950/20 text-amber-200 hover:bg-amber-950/40 border-amber-900/50"
-                        }`}
-                      >
-                        <span>{goal.description}</span>
-                        <span className="text-[10px] bg-amber-900/60 text-amber-300 px-2 py-0.5 rounded-md font-mono">Hubungkan 🔗</span>
-                      </button>
-                    );
-                  })}
+                  {budgetGoals.length > 0 ? (
+                    budgetGoals.map((goal) => {
+                      const goalName = goal.description || goal.name || "Target Tanpa Nama";
+                      const isSelected = category === goalName;
+                      return (
+                        <button
+                          type="button"
+                          key={goal.id}
+                          onClick={() => handleSelectSubCategory(goalName, goal.id)}
+                          className={`w-full p-3 rounded-xl text-xs font-medium text-left transition flex justify-between items-center border ${
+                            isSelected
+                              ? "bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-md"
+                              : "bg-amber-950/30 text-amber-200 hover:bg-amber-950/50 border-amber-900/50"
+                          }`}
+                        >
+                          <span>{goalName}</span>
+                          <span className="text-[10px] bg-amber-900/60 text-amber-300 px-2 py-0.5 rounded-md font-mono">Hubungkan 🔗</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <p className="text-[11px] text-amber-300/70 italic px-1 py-1">
+                      Belum ada target budgeting yang dibuat di database (tabel budget_goals).
+                    </p>
+                  )}
                   <div className="border-b border-slate-800 my-2"></div>
                 </div>
               )}
@@ -633,7 +640,7 @@ export default function Home() {
                 <span>+</span> Tambah Sub Kategori Baru
               </button>
 
-              {category && !budgetGoals.some((g) => g.description === category) && (
+              {category && !budgetGoals.some((g) => (g.description || g.name) === category) && (
                 <button
                   type="button"
                   onClick={handleDeleteSubCategory}
