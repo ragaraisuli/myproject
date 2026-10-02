@@ -43,6 +43,29 @@ export default function Home() {
   const [amount, setAmount] = useState("");
   const [isMounted, setIsMounted] = useState(false);
 
+ const formatRupiahInput = (value: string) => {
+  // Hanya ambil angka
+  const numberString = value.replace(/[^,\d]/g, "").toString();
+  const split = numberString.split(",");
+  const sisa = split[0].length % 3;
+  let rupiah = split[0].substr(0, sisa);
+  const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+  if (ribuan) {
+    const separator = sisa ? "." : "";
+    rupiah += separator + ribuan.join(".");
+  }
+
+  rupiah = split[1] !== undefined ? rupiah + "," + split[1] : rupiah;
+  return rupiah ? "Rp " + rupiah + ",00" : "";
+};
+
+const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Ambil hanya angka mentah untuk disimpan di state
+    const rawValue = e.target.value.replace(/[^0-9]/g, "");
+    setAmount(rawValue);
+  };
+
   // State untuk mengontrol Bottom Sheet
   const [isSubCategorySheetOpen, setIsSubCategorySheetOpen] = useState(false);
 
@@ -426,7 +449,7 @@ export default function Home() {
           {/* (Opsional: Jika tombol Keluar Anda ada di sini, biarkan di sampingnya) */}
           
           <label className="cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 transition shadow-md" title="Impor Excel">
-            <span>📥 Import excel</span>
+            <span>📂 Import excel</span>
             <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
           </label>
 
@@ -535,17 +558,16 @@ export default function Home() {
               />
             </div>
 
-            <div>
-              <label className="block text-slate-400 mb-1">5. Nominal (Rp)</label>
-              <input
-                type="number"
-                required
-                placeholder="Contoh: 50000"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 outline-none font-mono"
-              />
-            </div>
+            <div className="flex flex-col gap-1">
+  <label className="text-sm font-medium text-slate-300">5. Nominal (Rp)</label>
+  <input
+    type="text"
+    value={amount ? formatRupiahInput(amount) : ""}
+    onChange={handleAmountChange}
+    placeholder="Contoh: 50000"
+    className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-mono"
+  />
+</div>
 
             <button
               type="submit"
