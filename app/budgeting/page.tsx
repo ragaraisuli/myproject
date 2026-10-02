@@ -558,18 +558,6 @@ const payload = {
                     />
                   </div>
 
-<div>
-                  <label className="block font-semibold text-slate-400 mb-1">Total Target Nominal (Rp)</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="50000000"
-                    value={amountInput}
-                    onChange={(e) => setAmountInput(e.target.value)}
-                    className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none font-mono"
-                  />
-                </div>
-
                 <div>
                   <label className="block font-semibold text-slate-400 mb-1">Prioritas Target</label>
                   <select
