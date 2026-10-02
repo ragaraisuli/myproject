@@ -39,7 +39,6 @@ export default function Home() {
   const [category, setCategory] = useState("Gaji Suami");
   const [note, setNote] = useState("");
   const [amount, setAmount] = useState("");
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // State untuk mengontrol Bottom Sheet
@@ -181,13 +180,10 @@ export default function Home() {
     setDate(today);
   }, [isCheckingAuth, currentUserId]);
 
-  // Menggabungkan Budget Goals sebagai bagian dari opsi kategori Aset & Investasi secara otomatis
-  const goalDescriptions = budgetGoals.map((g) => g.description);
-  
   const categoryOptions: Record<string, string[]> = {
     Pemasukan: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pemasukan, ...(dynamicSubCategories.Pemasukan || [])])),
     Pengeluaran: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Pengeluaran, ...(dynamicSubCategories.Pengeluaran || [])])),
-    Aset: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Aset, ...goalDescriptions, ...(dynamicSubCategories.Aset || [])])),
+    Aset: Array.from(new Set([...DEFAULT_CATEGORY_OPTIONS.Aset, ...(dynamicSubCategories.Aset || [])])),
   };
 
   const handleLogout = async () => {
@@ -227,9 +223,53 @@ export default function Home() {
     }));
 
     setCategory(capitalizedName);
-    setSelectedBudgetGoalId(""); // Reset relasi target jika pilih sub kategori biasa
+    setSelectedBudgetGoalId("");
     setIsAddSubModalOpen(false);
     setNewSubName("");
+  };
+
+  const handleDeleteSubCategory = async () => {
+    if (!category) return;
+    
+    // Cek apakah kategori yang dipilih adalah bagian dari Target Budgeting (tidak boleh dihapus dari sini)
+    const isGoal = budgetGoals.some((g) => g.description === category);
+    if (isGoal) {
+      alert("Target budgeting dikelola langsung dari Dashboard Budgeting!");
+      return;
+    }
+
+    if (!window.confirm(`Hapus sub kategori "${category}"?`)) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { error } = await supabase
+        .from("sub_categories")
+        .delete()
+        .eq("user_id", session.user.id)
+        .eq("name", category)
+        .eq("type", type);
+
+      if (error) {
+        alert("Gagal menghapus dari database.");
+        return;
+      }
+
+      const currentOptions = categoryOptions[type] || [];
+      const updatedOptions = currentOptions.filter((item) => item !== category);
+
+      setDynamicSubCategories((prev) => ({
+        ...prev,
+        [type]: (prev[type] || []).filter((item) => item !== category),
+      }));
+
+      setCategory(updatedOptions[0] || "");
+      setSelectedBudgetGoalId("");
+      setIsSubCategorySheetOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleTypeChange = (newType: string) => {
@@ -239,18 +279,13 @@ export default function Home() {
     setSelectedBudgetGoalId("");
   };
 
-  // Handler saat memilih sub kategori di bottom sheet
-  const handleSelectSubCategory = (subCat: string) => {
+  const handleSelectSubCategory = (subCat: string, goalId?: string) => {
     setCategory(subCat);
-
-    // Cek apakah sub kategori yang dipilih merupakan bagian dari Target Budgeting (Aset)
-    const matchedGoal = budgetGoals.find((g) => g.description === subCat);
-    if (matchedGoal) {
-      setSelectedBudgetGoalId(matchedGoal.id);
+    if (goalId) {
+      setSelectedBudgetGoalId(goalId);
     } else {
       setSelectedBudgetGoalId("");
     }
-
     setIsSubCategorySheetOpen(false);
   };
 
@@ -416,27 +451,25 @@ export default function Home() {
               </select>
             </div>
 
-            {/* TOMBOL CUSTOM BOTTOM SHEET (SUB KATEGORI & OTOMATIS TARGET BUDGETING) */}
+            {/* TOMBOL CUSTOM BOTTOM SHEET */}
             <div>
-               <label className="block text-slate-400 mb-1">3. Sub Kategori {type === 'Aset' && '/ Target Budgeting'}</label>
+               <label className="block text-slate-400 mb-1">3. Sub Kategori</label>
                {isMounted ? (
-                 <div className="space-y-1.5">
-                   <button
-                     type="button"
-                     onClick={() => setIsSubCategorySheetOpen(true)}
-                     className="w-full bg-slate-950 text-slate-200 px-3.5 py-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs hover:border-emerald-500 transition shadow-inner"
-                   >
-                     <div className="text-left">
-                       <span className="font-bold text-emerald-400 text-sm tracking-wide block">{category || "Pilih Sub Kategori"}</span>
-                       {selectedBudgetGoalId && (
-                         <span className="text-[10px] text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-md inline-block mt-1 border border-amber-900/50">
-                           🔗 Terhubung ke Target Budgeting
-                         </span>
-                       )}
-                     </div>
-                     <span className="text-slate-400 bg-slate-900 px-2.5 py-1.5 rounded-lg text-[10px]">Ubah ▼</span>
-                   </button>
-                 </div>
+                 <button
+                   type="button"
+                   onClick={() => setIsSubCategorySheetOpen(true)}
+                   className="w-full bg-slate-950 text-slate-200 px-3.5 py-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs hover:border-emerald-500 transition shadow-inner"
+                 >
+                   <div className="text-left">
+                     <span className="font-bold text-emerald-400 text-sm tracking-wide block">{category || "Pilih Sub Kategori"}</span>
+                     {selectedBudgetGoalId && (
+                       <span className="text-[10px] text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-md inline-block mt-1 border border-amber-900/50">
+                         🔗 Terhubung ke Target Budgeting
+                       </span>
+                     )}
+                   </div>
+                   <span className="text-slate-400 bg-slate-900 px-2.5 py-1.5 rounded-lg text-[10px]">Ubah ▼</span>
+                 </button>
                ) : (
                  <div className="w-full bg-slate-950 text-slate-500 px-3.5 py-3 rounded-xl border border-slate-800">
                    Memuat pilihan...
@@ -537,8 +570,9 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1 py-1 max-h-[50vh]">
-              {/* Bagian Target Budgeting (Jika Tipe Aset) */}
+            <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1 py-1 max-h-[45vh]">
+              
+              {/* Bagian Target Budgeting (Hanya tampil jika tipe Aset & ada data budget goals) */}
               {type === "Aset" && budgetGoals.length > 0 && (
                 <div className="space-y-1.5 mb-2">
                   <p className="text-[10px] uppercase tracking-wider text-amber-400 font-bold px-1">🎯 Target Budgeting Anda:</p>
@@ -548,7 +582,7 @@ export default function Home() {
                       <button
                         type="button"
                         key={goal.id}
-                        onClick={() => handleSelectSubCategory(goal.description)}
+                        onClick={() => handleSelectSubCategory(goal.description, goal.id)}
                         className={`w-full p-3 rounded-xl text-xs font-medium text-left transition flex justify-between items-center border ${
                           isSelected
                             ? "bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-md"
@@ -566,15 +600,9 @@ export default function Home() {
 
               <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold px-1">📁 Sub Kategori Umum:</p>
               
-              {/* Grid Sub Kategori */}
               <div className="grid grid-cols-2 gap-2">
                 {Array.isArray(categoryOptions[type]) && categoryOptions[type].map((subCat: string) => {
                   const isSelected = category === subCat;
-                  const isGoal = budgetGoals.some((g) => g.description === subCat);
-                  
-                  // Jika sudah dirender di bagian atas sebagai target budgeting, lewati di grid bawah agar tidak duplikat
-                  if (type === "Aset" && isGoal) return null;
-
                   return (
                     <button
                       type="button"
@@ -604,6 +632,16 @@ export default function Home() {
               >
                 <span>+</span> Tambah Sub Kategori Baru
               </button>
+
+              {category && !budgetGoals.some((g) => g.description === category) && (
+                <button
+                  type="button"
+                  onClick={handleDeleteSubCategory}
+                  className="w-full bg-rose-950/40 hover:bg-rose-950 text-rose-400 border border-rose-900/60 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5"
+                >
+                  <span>🗑️</span> Hapus Sub Kategori ({category})
+                </button>
+              )}
             </div>
 
           </div>
