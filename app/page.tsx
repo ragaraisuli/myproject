@@ -42,7 +42,7 @@ export default function Home() {
   const [note, setNote] = useState("");
   const [amount, setAmount] = useState("");
   const [isMounted, setIsMounted] = useState(false);
-  const [isTypeSheetOpen, setIsTypeSheetOpen] = useState(false); 
+
  const formatRupiahInput = (value: string) => {
     // Ambil hanya angka saja dari string
     const numbers = value.replace(/\D/g, "");
@@ -501,17 +501,18 @@ const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               />
             </div>
 
-<div>
-  <label className="block text-slate-400 mb-1">2. Keterangan Utama</label>
-  <button
-    type="button"
-    onClick={() => setIsTypeSheetOpen(true)}
-    className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 text-left flex justify-between items-center text-sm transition hover:border-slate-700"
-  >
-    <span className="font-semibold text-emerald-400">{type}</span>
-    <span className="text-xs text-slate-400">Ubah ▼</span>
-  </button>
-</div>
+            <div>
+              <label className="block text-slate-400 mb-1">2. Keterangan Utama</label>
+              <select
+                value={type}
+                onChange={(e) => handleTypeChange(e.target.value)}
+                className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 outline-none cursor-pointer"
+              >
+                <option value="Pemasukan">Pemasukan</option>
+                <option value="Pengeluaran">Pengeluaran</option>
+                <option value="Aset">Aset & Investasi</option>
+              </select>
+            </div>
 
             {/* TOMBOL CUSTOM BOTTOM SHEET */}
             <div>
@@ -754,49 +755,6 @@ const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         </div>
       )}
 
-{isTypeSheetOpen && (
-  <div className="fixed inset-0 z-50 bg-black/70 flex justify-end sm:justify-center items-end sm:items-center p-0 sm:p-4 backdrop-blur-sm transition-all">
-    <div className="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl w-full sm:max-w-md max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-      
-      {/* Header Pop-up */}
-      <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
-        <div>
-          <h3 className="text-lg font-bold text-white">Pilih Keterangan Utama</h3>
-          <p className="text-xs text-slate-400">Pilih kategori jenis transaksi</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsTypeSheetOpen(false)}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold transition"
-        >
-          ✕ Tutup
-        </button>
-      </div>
-
-      {/* Daftar Pilihan Keterangan Utama */}
-      <div className="grid grid-cols-1 gap-2.5 mb-4">
-        {["Pemasukan", "Pengeluaran", "Aset & Investasi"].map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => {
-              setType(item);
-              setIsTypeSheetOpen(false);
-            }}
-            className={`w-full py-3 px-4 rounded-xl text-left font-medium transition border ${
-              type === item
-                ? "bg-emerald-500 text-slate-950 border-emerald-400 font-bold shadow-lg shadow-emerald-900/20"
-                : "bg-slate-950 text-slate-200 border-slate-800 hover:bg-slate-800"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-
-    </div>
-  </div>
-)}
     </main>
   );
 }
