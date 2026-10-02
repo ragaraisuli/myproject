@@ -552,13 +552,13 @@ const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             </div>
 
 <div className="flex flex-col gap-1">
-  <label className="text-sm font-medium text-slate-300">5. Nominal (Rp)</label>
+  <label className="block text-slate-400 mb-1">5. Nominal (Rp)</label>
   <input
     type="text"
     value={amount ? formatRupiahInput(amount) : ""}
     onChange={handleAmountChange}
     placeholder="Contoh: 50000"
-    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
+    className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 outline-none"
   />
 </div>
 
