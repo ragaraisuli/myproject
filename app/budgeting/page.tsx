@@ -572,19 +572,6 @@ const payload = {
                 </div>
                 </div>
 
-               <div>
-                  <label className="block font-semibold text-slate-400 mb-1">Prioritas Target</label>
-                  <select
-                    value={priorityInput}
-                    onChange={(e) => setPriorityInput(e.target.value as Priority)}
-                    className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 focus:border-indigo-500 outline-none cursor-pointer"
-                  >
-                    <option value="HIGH">HIGH (Prioritas Tinggi / Wajib)</option>
-                    <option value="MEDIUM">MEDIUM (Prioritas Sedang)</option>
-                    <option value="LOW">LOW (Prioritas Rendah / Opsional)</option>
-                  </select>
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold text-slate-400 mb-1">Mulai Menabung (Bulan & Tahun)</label>
