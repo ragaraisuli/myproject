@@ -37,10 +37,6 @@ export default function Home() {
   const [importStatus, setImportStatus] = useState("");
   const [isMounted, setIsMounted] = useState(false);
 
-  // State untuk Target Budgeting
-  const [budgetGoals, setBudgetGoals] = useState<any[]>([]);
-  const [selectedBudgetGoal, setSelectedBudgetGoal] = useState<string>("");
-
   // State untuk menampung sub kategori tambahan per user dari tabel sub_categories
   const [dynamicSubCategories, setDynamicSubCategories] = useState<Record<string, string[]>>({
     Pemasukan: [],
@@ -114,31 +110,9 @@ export default function Home() {
     }
   }, [isCheckingAuth, currentUserId]);
 
-  // Ambil data Target Budgeting milik user dari Supabase
-  useEffect(() => {
-    const fetchBudgetGoals = async () => {
-      if (!currentUserId) return;
-
-      const { data, error } = await supabase
-        .from("budget_goals")
-        .select("id, description")
-        .eq("user_id", currentUserId);
-
-      if (error) {
-        console.error("Gagal memuat target budgeting:", error.message);
-      } else if (data) {
-        setBudgetGoals(data);
-      }
-    };
-
-    if (!isCheckingAuth && currentUserId) {
-      fetchBudgetGoals();
-    }
-  }, [isCheckingAuth, currentUserId]);
-
   // Ambil data transaksi khusus milik user yang sedang login dari Supabase
   useEffect(() => {
-    const fetchTransactions = async () => {
+const fetchTransactions = async () => {
       if (!currentUserId) return;
 
       let allData: any[] = [];
@@ -147,6 +121,7 @@ export default function Home() {
       let hasMore = true;
 
       try {
+        // Looping otomatis untuk mengambil semua data tanpa batas (unlimited)
         while (hasMore) {
           const { data, error } = await supabase
             .from("transactions")
@@ -179,6 +154,7 @@ export default function Home() {
           category: item.category,
           subCategory: item.sub_category || item.subCategory || "-",
           amount: Number(item.amount),
+          notes: item.notes || "",
         }));
 
         setTransactions(mappedData);
@@ -251,15 +227,17 @@ export default function Home() {
     setNewSubName("");
   };
 
-  const handleDeleteSubCategory = async () => {
+const handleDeleteSubCategory = async () => {
     if (!category) return;
     const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus sub kategori "${category}"?`);
     if (!confirmDelete) return;
 
     try {
+      // 1. Ambil sesi pengguna yang sedang aktif
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // 2. Hapus data dari tabel sub_categories di Supabase
       const { error } = await supabase
         .from("sub_categories")
         .delete()
@@ -273,6 +251,7 @@ export default function Home() {
         return;
       }
 
+      // 3. Perbarui state di frontend jika berhasil di database
       const currentOptions = categoryOptions[type] || [];
       const updatedOptions = currentOptions.filter((item) => item !== category);
 
@@ -292,7 +271,6 @@ export default function Home() {
     const availableSubCategories = categoryOptions[newType] || [];
     setCategory(availableSubCategories[0] || "");
     setIsCustomSubCategory(false);
-    setSelectedBudgetGoal(""); // Reset target budgeting jika tipe berubah
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -327,15 +305,12 @@ export default function Home() {
       }
     }
 
-    // Jika Kategori Aset & Investasi dan terhubung ke Target Budgeting, simpan nama target ke sub_category atau notes
-    const finalSubCategory = (type === "Aset" && selectedBudgetGoal) ? selectedBudgetGoal : note;
-
     const newTxPayload = {
       user_id: currentUserId,
       date: date,
       type: type,
       category: category,
-      sub_category: finalSubCategory,
+      sub_category: note,
       amount: parsedAmount,
     };
 
@@ -359,7 +334,6 @@ export default function Home() {
       setTransactions([newTxFormatted, ...transactions]);
       setNote("");
       setAmount("");
-      setSelectedBudgetGoal("");
       alert("Data berhasil disimpan ke database Supabase!");
     }
   };
@@ -639,28 +613,6 @@ export default function Home() {
                  </div>
                )}
             </div>
-
-            {/* TAMBAHAN: Hubungkan ke Target Budgeting (Hanya muncul jika Keterangan Utama = Aset & Investasi) */}
-            {type === "Aset" && (
-              <div className="space-y-1 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                <label className="block text-slate-400 mb-1 font-semibold">Hubungkan ke Target Budgeting (Opsional)</label>
-                <select
-                  value={selectedBudgetGoal}
-                  onChange={(e) => setSelectedBudgetGoal(e.target.value)}
-                  className="w-full bg-slate-900 text-slate-200 px-3 py-2.5 rounded-xl border border-slate-800 outline-none cursor-pointer"
-                >
-                  <option value="">-- Tidak Terhubung (Catatan Biasa) --</option>
-                  {budgetGoals.map((goal) => (
-                    <option key={goal.id} value={goal.description}>
-                      {goal.description}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Otomatis terakumulasi ke halaman Budgeting jika dipilih.
-                </p>
-              </div>
-            )}
 
             <div>
               <label className="block text-slate-400 mb-1">4. Keterangan Bebas (Opsional)</label>
