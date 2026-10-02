@@ -555,6 +555,7 @@ const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   <label className="block text-slate-400 mb-1">5. Nominal (Rp)</label>
   <input
     type="text"
+    inputMode="numeric"
     value={amount ? formatRupiahInput(amount) : ""}
     onChange={handleAmountChange}
     placeholder="Contoh: 50000"
