@@ -421,25 +421,22 @@ export default function Home() {
             <span>🚪</span> Keluar
           </button>
           
-{/* Total Ringkasan & Tombol Impor Excel */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-lg">
-          <div>
-          <p className="text-lg font-extrabold text-emerald-400 font-mono mt-0.5">{formatRupiah(totalPemasukan)}</p>
-          </div>
-          <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 p-2.5 rounded-xl border border-slate-700 text-emerald-400 text-xs flex items-center gap-1 transition shadow-inner" title="Impor Excel">
+{/* Tombol Aksi: Keluar, Impor Excel, dan Dashboard */}
+        <div className="flex gap-2 items-center">
+          {/* (Opsional: Jika tombol Keluar Anda ada di sini, biarkan di sampingnya) */}
+          
+          <label className="cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 transition shadow-md" title="Impor Excel">
             <span>📥 Import excel</span>
             <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
           </label>
-        </div>
 
-          <div className="flex gap-2">
-            <Link
-              href="/dashboard"
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs transition shadow-md"
-            >
-              Dashboard 📊
-            </Link>
-          </div>
+          <Link
+            href="/dashboard"
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs transition shadow-md flex items-center gap-1"
+          >
+            Dashboard 📊
+          </Link>
+        </div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center shadow-xl space-y-1">
